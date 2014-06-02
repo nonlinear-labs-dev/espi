@@ -56,7 +56,7 @@ static u8 *btn_st;
 static u8 *button_buff;
 static u32 btn_buff_head, btn_buff_tail;
 static DEFINE_MUTEX(btn_buff_tail_lock);
-DECLARE_WAIT_QUEUE_HEAD(wqueue);
+static DECLARE_WAIT_QUEUE_HEAD(btn_wqueue);
 
 /********* LEDs stuff **************************************************************/
 #define ESPI_LED_DEV_MAJOR		301
@@ -151,7 +151,8 @@ static u16 adc_channel_val[ESPI_ADC_320X];
 
 /********* Encoder stuff *************************************************************/
 #define ESPI_ENCODER_DEV_MAJOR		308
-static s32 encoder_delta;
+static s8 encoder_delta;
+static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 
 //************************************************************************************
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
@@ -286,14 +287,20 @@ static ssize_t espiencoder_write(struct file *filp, const char __user *buf, size
 static ssize_t espiencoder_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
-	s32* buf32 = (s32*) buf;
-	
-	if(count >= 4) {
-		*buf32 = encoder_delta;
-		encoder_delta = 0;
-		status = 4;
-	}
-	
+
+	/* If in non-blocking mode and no data to read, return */
+	if (filp->f_flags & O_NONBLOCK && encoder_delta == 0)
+		return -EAGAIN;
+
+	/* Sleep until there is data to read */
+	if (status = wait_event_interruptible(encoder_wqueue, encoder_delta != 0))
+		return status;
+
+// TODO: find a solution for cases, where playground crashes, user turn on rotary like crazy, playground restarts and e.g. volume jumps to max.
+	buf[0] = encoder_delta;
+	encoder_delta = 0;
+	status = 1;
+
 	return status;
 }
 
@@ -310,6 +317,21 @@ static s32 espiencoder_release(struct inode *inode, struct file *filp)
 	return status;
 }
 
+static int espiencoder_poll(struct file *filp, poll_table *wait)
+{
+
+	unsigned int mask = 0;
+	poll_wait(filp, &encoder_wqueue, wait);
+
+	/* If there is data in buffer, reading is allowed
+	 * Writing to buttons never makes sense, so dissallow */
+
+	if (encoder_delta != 0)
+		mask |= POLLIN | POLLRDNORM;
+
+	return mask;
+}
+
 static const struct file_operations espiencoder_fops = {
 		.owner = 	THIS_MODULE,
 		.write = 	espiencoder_write,
@@ -317,6 +339,7 @@ static const struct file_operations espiencoder_fops = {
 		.open =		espiencoder_open,
 		.release = 	espiencoder_release,
 		.llseek = 	no_llseek,
+		.poll =		espiencoder_poll,
 };
 
 static struct class *espiencoder_class;
@@ -368,11 +391,15 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
 	
-	if(rx_buff[2] != 0) {
-		printk("encoder delta: %d\n", (s8)rx_buff[2]);
-		encoder_delta += (s8) rx_buff[2];
-	}
+	if(rx_buff[2] != 0 ) {
+		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
+		    !(encoder_delta + (s8)rx_buff[2] < -128)) {
+			encoder_delta += (s8) rx_buff[2];
 
+			//printk("encoder delta: %d\n", (s8)encoder_delta);
+			wake_up_interruptible(&encoder_wqueue);
+		}
+	}
 }
 
 // ************************************************************************************************************************************************
@@ -1239,19 +1266,20 @@ static ssize_t espibtn_write(struct file *filp, const char __user *buf, size_t c
 
 static ssize_t espibtn_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
-	ssize_t status = 1;
+	ssize_t status = 0;
 
 	/* If in non-blocking mode and no data to read, return */
 	if (filp->f_flags & O_NONBLOCK && btn_buff_head == btn_buff_tail)
 		return -EAGAIN;
 
 	/* Sleep until there is data to read */
-	if (wait_event_interruptible(wqueue, btn_buff_head != btn_buff_tail))
-		return -ERESTARTSYS;
+	if (status = wait_event_interruptible(btn_wqueue, btn_buff_head != btn_buff_tail))
+		return status;
 
 	mutex_lock(&btn_buff_tail_lock);
 	buf[0] = button_buff[btn_buff_tail];
 	btn_buff_tail = (btn_buff_tail+1)%BUTTON_BUFFER_SIZE;
+	status = 1;
 	mutex_unlock(&btn_buff_tail_lock);
 
 	return status;
@@ -1274,7 +1302,7 @@ static int espibtn_poll(struct file *filp, poll_table *wait)
 {
 
 	unsigned int mask = 0;
-	poll_wait(filp, &wqueue, wait);
+	poll_wait(filp, &btn_wqueue, wait);
 
 	/* If there is data in buffer, reading is allowed
 	 * Writing to buttons never makes sense, so dissallow */
@@ -1404,7 +1432,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 				if(((btn_buff_head+1)%BUTTON_BUFFER_SIZE) != btn_buff_tail) {
 					button_buff[btn_buff_head] = btn_id;
 					btn_buff_head = (btn_buff_head+1)%BUTTON_BUFFER_SIZE;
-					wake_up_interruptible(&wqueue);
+					wake_up_interruptible(&btn_wqueue);
 				}
 				//printk("button-change = %x\n", btn_id);
 			}	
