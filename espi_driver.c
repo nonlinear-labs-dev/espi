@@ -1413,6 +1413,10 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
+	
+	/***** MASKING ******/
+	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
+	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
 
 	/** check read states */
 	for(i=0; i < BUTTON_STATES_SIZE; i++) {
