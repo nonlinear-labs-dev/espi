@@ -29,8 +29,8 @@
 
 #define ESPI_SPI_SPEED	1000000
 
-static struct espi_driver {
-	struct delayed_work work;
+struct espi_driver {
+	struct delayed_work work; // This must be the top entry!
 	struct device *dev;
 	struct spi_device *spidev;
 
@@ -293,7 +293,7 @@ static ssize_t espiencoder_read(struct file *filp, char __user *buf, size_t coun
 		return -EAGAIN;
 
 	/* Sleep until there is data to read */
-	if (status = wait_event_interruptible(encoder_wqueue, encoder_delta != 0))
+	if ((status = wait_event_interruptible(encoder_wqueue, encoder_delta != 0)))
 		return status;
 
 // TODO: find a solution for cases, where playground crashes, user turn on rotary like crazy, playground restarts and e.g. volume jumps to max.
@@ -317,7 +317,7 @@ static s32 espiencoder_release(struct inode *inode, struct file *filp)
 	return status;
 }
 
-static int espiencoder_poll(struct file *filp, poll_table *wait)
+static unsigned int espiencoder_poll(struct file *filp, poll_table *wait)
 {
 
 	unsigned int mask = 0;
@@ -515,10 +515,10 @@ static ssize_t attenuator_write(struct file *filp, const char __user *buf, size_
 	if(buf[0] >= 3 && count != 2)
 		return -EFAULT;
 		
-	if(buf[1] != attenuator_channel_val[buf[0]]) {
+	if(buf[1] != attenuator_channel_val[(const unsigned char)buf[0]]) {
 		mutex_lock(&attenuator_lock);
-		attenuator_channel_val[buf[0]] = buf[1];
-		attenuator_channel_updated[buf[0]] = 1;
+		attenuator_channel_val[(const unsigned char)buf[0]] = buf[1];
+		attenuator_channel_updated[(const unsigned char)buf[0]] = 1;
 		status = 2;
 		mutex_unlock(&attenuator_lock);
 	}
@@ -1273,7 +1273,7 @@ static ssize_t espibtn_read(struct file *filp, char __user *buf, size_t count, l
 		return -EAGAIN;
 
 	/* Sleep until there is data to read */
-	if (status = wait_event_interruptible(btn_wqueue, btn_buff_head != btn_buff_tail))
+	if ((status = wait_event_interruptible(btn_wqueue, btn_buff_head != btn_buff_tail)))
 		return status;
 
 	mutex_lock(&btn_buff_tail_lock);
@@ -1298,7 +1298,7 @@ static int espibtn_release(struct inode *inode, struct file *filp)
 	return status;
 }
 
-static int espibtn_poll(struct file *filp, poll_table *wait)
+static unsigned int espibtn_poll(struct file *filp, poll_table *wait)
 {
 
 	unsigned int mask = 0;
