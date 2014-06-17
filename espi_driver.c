@@ -1277,7 +1277,9 @@ static ssize_t espibtn_read(struct file *filp, char __user *buf, size_t count, l
 		return status;
 
 	mutex_lock(&btn_buff_tail_lock);
-	buf[0] = button_buff[btn_buff_tail];
+
+	// xor 0x80, so we get 1 on btn down and 0 on btn up
+	buf[0] = button_buff[btn_buff_tail] ^ 0x80;
 	btn_buff_tail = (btn_buff_tail+1)%BUTTON_BUFFER_SIZE;
 	status = 1;
 	mutex_unlock(&btn_buff_tail_lock);
