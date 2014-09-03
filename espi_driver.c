@@ -20,8 +20,6 @@
 #include <linux/hrtimer.h>
 #include <linux/hardirq.h>
 
-#include <linux/sysfs.h>
-
 #define ESPI_ATTENUATOR_PORT		2
 #define ESPI_ADC_PORT			3
 #define ESPI_BTN_LED_PANELS_PORT	7
@@ -30,8 +28,6 @@
 #define ESPI_RIBBON_LEDS_PORT		6
 
 #define ESPI_SPI_SPEED	1000000
-
-u32	module_enable_flags;
 
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
@@ -157,15 +153,6 @@ static u16 adc_channel_val[ESPI_ADC_320X];
 #define ESPI_ENCODER_DEV_MAJOR		308
 static s8 encoder_delta;
 static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
-
-
-// Module Enable Flags
-//************************************************************************************
-
-
-
-
-
 
 //************************************************************************************
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
@@ -832,6 +819,14 @@ static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
+static void espi_driver_poll_boled_force_write(struct espi_driver *p)
+{
+	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 2);
+	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
+	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 0);
+}
+
+
 static void espi_driver_ssd1322_poll(struct espi_driver *p)
 {
 	u32 i, update = 0;
@@ -994,6 +989,23 @@ static s32 espi_driver_ssd1305_cleanup(struct espi_driver *sb)
 	unregister_chrdev(ESPI_SSD1305_DEV_MAJOR, "spi");
 	
 	return 0;
+}
+
+static void espi_driver_poll_soled_force_write(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+
+	xfer.tx_buf = ssd1305_buff;
+	xfer.rx_buf = NULL;
+	xfer.len = SSD1305_BUFF_SIZE;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+	
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 1);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
 }
 
 static void espi_driver_ssd1305_poll(struct espi_driver *p)
@@ -1387,6 +1399,95 @@ static s32 espi_driver_buttons_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
+
+
+static void espi_driver_poll_buttons_selection(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 rx[BUTTON_STATES_SIZE];
+	u8 i, j, xor, bit, btn_id;
+
+	xfer.tx_buf = NULL;
+	xfer.rx_buf = rx;
+	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
+
+	/** read general panels */
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 2);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
+
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
+
+}
+
+static void espi_driver_poll_buttons_play(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 rx[BUTTON_STATES_SIZE];
+	u8 i, j, xor, bit, btn_id;
+
+	xfer.tx_buf = NULL;
+	xfer.rx_buf = rx;
+	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
+
+	/** read small oled panel */
+	xfer.tx_buf = NULL;
+	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
+	xfer.len = BUTTON_BYTES_SOLED_PANEL;
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 2);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
+	
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
+
+}
+
+static void espi_driver_poll_buttons_edit(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 rx[BUTTON_STATES_SIZE];
+	u8 i, j, xor, bit, btn_id;
+
+	xfer.tx_buf = NULL;
+	xfer.rx_buf = rx;
+	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
+
+	/** read central (big oled) panel */
+	xfer.tx_buf = NULL;
+	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
+	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 1);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
+	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
+
+
+	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
+
+}
+
 static void espi_driver_pollbuttons(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
@@ -1428,8 +1529,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
-	
-	/***** MASKING ******/
+      
+      /***** MASKING ******/
 	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
 	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
 
@@ -1462,37 +1563,52 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
 }
 
+//// **************************************************************************
+//static void espi_driver_poll(struct delayed_work *p)
+//{
+//	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
+//
+//	switch(((struct espi_driver *)p)->poll_stage)
+//	{
+//	case 0:
+//	case 2:
+//	case 4:
+//	case 6:
+//		espi_driver_pollbuttons((struct espi_driver *)p);
+////	espi_driver_adc_poll((struct espi_driver *)p);
+//		espi_driver_encoder_poll((struct espi_driver *)p);
+//		break;
+//	case 1:
+//	case 5:
+//		espi_driver_leds_poll((struct espi_driver *)p);
+//		espi_driver_rb_leds_poll((struct espi_driver *)p);
+//	//	espi_driver_attenuator_poll((struct espi_driver *)p);
+//		break;
+//	case 3:
+//		espi_driver_ssd1305_poll((struct espi_driver *)p);
+//		break;
+//	case 7:
+//		espi_driver_ssd1322_poll((struct espi_driver *)p);
+//		break;
+//	}
+//
+//	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
+//}
+
 // **************************************************************************
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
 
-	switch(((struct espi_driver *)p)->poll_stage)
-	{
-	case 0:
-	case 2:
-	case 4:
-	case 6:
-		espi_driver_pollbuttons((struct espi_driver *)p);
-		espi_driver_adc_poll((struct espi_driver *)p);
-		espi_driver_encoder_poll((struct espi_driver *)p);
-		break;
-	case 1:
-	case 5:
-		espi_driver_leds_poll((struct espi_driver *)p);
-		espi_driver_rb_leds_poll((struct espi_driver *)p);
-		espi_driver_attenuator_poll((struct espi_driver *)p);
-		break;
-	case 3:
-		espi_driver_ssd1305_poll((struct espi_driver *)p);
-		break;
-	case 7:
-		espi_driver_ssd1322_poll((struct espi_driver *)p);
-		break;
-	}
+//	espi_driver_leds_poll((struct espi_driver *)p);
+	espi_driver_rb_leds_poll((struct espi_driver *)p);
+	
+	
+
 
 	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
 }
+
 
 // **************************************************************************
 static s32 espi_driver_probe(struct spi_device *dev)
@@ -1591,32 +1707,6 @@ static s32 espi_driver_remove(struct spi_device *spi)
 }
 
 // **************************************************************************
-static ssize_t set_enabled_modules(struct class *class,
-                                struct class_attribute *attr,
-                                const char *buf, size_t len)
-{
-	char tmp[64];
-
-	printk("-> Wrote to sysfs: %s", buf);
-
-
-	return len;
-}
-
-static struct class_attribute espi_class_attrs[] = {
-        __ATTR(enable_modules, 0770, NULL, set_enabled_modules),
-        __ATTR_NULL,
-};
-
-static struct class gpio_class = {
-        .name =         "espi_driver",
-        .owner =        THIS_MODULE,
-
-        .class_attrs =  espi_class_attrs,
-};
-
-
-
 static struct spi_driver espi_driver_driver = {
 		.driver = {
 				.name = "espi_driver",
@@ -1636,13 +1726,6 @@ static s32 __init espi_driver_init( void )
 	s32 ret;
 
 	printk("espi_driver_init --\n");
-
-	status = class_register(&gpio_class);
-	if (status < 0) {
-		printk("Can not register sysfs class");
-		return status;
-	}
-
 
 	workqueue = create_workqueue("espi_driver queue");
 	if (workqueue == NULL) {
