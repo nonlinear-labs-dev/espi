@@ -20,6 +20,8 @@
 #include <linux/hrtimer.h>
 #include <linux/hardirq.h>
 
+#include <linux/sysfs.h>
+
 #define ESPI_ATTENUATOR_PORT		2
 #define ESPI_ADC_PORT			3
 #define ESPI_BTN_LED_PANELS_PORT	7
@@ -28,6 +30,8 @@
 #define ESPI_RIBBON_LEDS_PORT		6
 
 #define ESPI_SPI_SPEED	1000000
+
+u32	module_enable_flags;
 
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
@@ -153,6 +157,15 @@ static u16 adc_channel_val[ESPI_ADC_320X];
 #define ESPI_ENCODER_DEV_MAJOR		308
 static s8 encoder_delta;
 static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
+
+
+// Module Enable Flags
+//************************************************************************************
+
+
+
+
+
 
 //************************************************************************************
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
@@ -1578,6 +1591,32 @@ static s32 espi_driver_remove(struct spi_device *spi)
 }
 
 // **************************************************************************
+static ssize_t set_enabled_modules(struct class *class,
+                                struct class_attribute *attr,
+                                const char *buf, size_t len)
+{
+	char tmp[64];
+
+	printk("-> Wrote to sysfs: %s", buf);
+
+
+	return len;
+}
+
+static struct class_attribute espi_class_attrs[] = {
+        __ATTR(enable_modules, 0770, NULL, set_enabled_modules),
+        __ATTR_NULL,
+};
+
+static struct class gpio_class = {
+        .name =         "espi_driver",
+        .owner =        THIS_MODULE,
+
+        .class_attrs =  espi_class_attrs,
+};
+
+
+
 static struct spi_driver espi_driver_driver = {
 		.driver = {
 				.name = "espi_driver",
@@ -1597,6 +1636,13 @@ static s32 __init espi_driver_init( void )
 	s32 ret;
 
 	printk("espi_driver_init --\n");
+
+	status = class_register(&gpio_class);
+	if (status < 0) {
+		printk("Can not register sysfs class");
+		return status;
+	}
+
 
 	workqueue = create_workqueue("espi_driver queue");
 	if (workqueue == NULL) {
