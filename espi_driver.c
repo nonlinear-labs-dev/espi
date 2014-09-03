@@ -31,8 +31,6 @@
 
 #define ESPI_SPI_SPEED	1000000
 
-u32	module_enable_flags;
-
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
 	struct device *dev;
@@ -1603,20 +1601,6 @@ static ssize_t set_enabled_modules(struct class *class,
 	return len;
 }
 
-static struct class_attribute espi_class_attrs[] = {
-        __ATTR(enable_modules, 0770, NULL, set_enabled_modules),
-        __ATTR_NULL,
-};
-
-static struct class gpio_class = {
-        .name =         "espi_driver",
-        .owner =        THIS_MODULE,
-
-        .class_attrs =  espi_class_attrs,
-};
-
-
-
 static struct spi_driver espi_driver_driver = {
 		.driver = {
 				.name = "espi_driver",
@@ -1636,13 +1620,6 @@ static s32 __init espi_driver_init( void )
 	s32 ret;
 
 	printk("espi_driver_init --\n");
-
-	status = class_register(&gpio_class);
-	if (status < 0) {
-		printk("Can not register sysfs class");
-		return status;
-	}
-
 
 	workqueue = create_workqueue("espi_driver queue");
 	if (workqueue == NULL) {
