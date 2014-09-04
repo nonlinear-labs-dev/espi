@@ -1563,7 +1563,6 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
 }
 
-//// **************************************************************************
 //static void espi_driver_poll(struct delayed_work *p)
 //{
 //	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1575,14 +1574,14 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 //	case 4:
 //	case 6:
 //		espi_driver_pollbuttons((struct espi_driver *)p);
-////	espi_driver_adc_poll((struct espi_driver *)p);
+//		espi_driver_adc_poll((struct espi_driver *)p);
 //		espi_driver_encoder_poll((struct espi_driver *)p);
 //		break;
 //	case 1:
 //	case 5:
 //		espi_driver_leds_poll((struct espi_driver *)p);
 //		espi_driver_rb_leds_poll((struct espi_driver *)p);
-//	//	espi_driver_attenuator_poll((struct espi_driver *)p);
+//		espi_driver_attenuator_poll((struct espi_driver *)p);
 //		break;
 //	case 3:
 //		espi_driver_ssd1305_poll((struct espi_driver *)p);
@@ -1598,13 +1597,17 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 // **************************************************************************
 static void espi_driver_poll(struct delayed_work *p)
 {
+
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
 
-//	espi_driver_leds_poll((struct espi_driver *)p);
-	espi_driver_rb_leds_poll((struct espi_driver *)p);
-	
-	
+	espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
+	espi_driver_rb_leds_poll((struct espi_driver *)p);// Tut nüscht
 
+	//espi_driver_leds_poll((struct espi_driver *)p);
+	//espi_driver_poll_buttons_selection((struct espi_driver *)p);
+	espi_driver_poll_buttons_play((struct espi_driver *)p);
+	//espi_driver_poll_buttons_edit((struct espi_driver *)p);
+//	espi_driver_encoder_poll((struct espi_driver *)p);
 
 	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
 }
