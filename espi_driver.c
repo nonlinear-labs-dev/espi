@@ -1657,7 +1657,6 @@ static void espi_driver_poll(struct delayed_work *p)
 
 	espi_driver_rb_leds_poll((struct espi_driver *)p);// Tut nüscht
 
-	
 #if 0
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
 	espi_driver_leds_poll((struct espi_driver *)p);
