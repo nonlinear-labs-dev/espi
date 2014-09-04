@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 
 if [[ -z ${CROSS_COMPILE} ]]; then
 	echo You have to set \$CROSS_COMPILE in order to use this build script!
@@ -14,5 +14,4 @@ echo "Building..."
 echo "  \$KSRC=${KSRC}"
 echo "  \$CROSS_COMPILE=${CROSS_COMPILE}"
 
-
-make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} KVER=3.13.6 KSRC=${KSRC}
+make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -C ${KSRC} M=$(pwd)
