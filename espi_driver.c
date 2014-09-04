@@ -33,13 +33,11 @@
 
 
 #if 1 // HW V.2 Rev.C
-
 #define ESPI_RIBBON_LEDS_PORT		            3
 #define ESPI_DEVICE_TOP_COVER_RIBBON_LEDS       2
 
-
 // alte
-#define ESPI_ATTENUATOR_PORT		2
+#define ESPI_ATTENUATOR_PORT		1
 #define ESPI_ADC_PORT			    6
 #define ESPI_BTN_LED_PANELS_PORT	7
 #define ESPI_LARGE_DISPLAY_PORT		8
