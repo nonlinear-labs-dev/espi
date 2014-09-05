@@ -1900,7 +1900,8 @@ static s32 __init espi_driver_init( void )
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
 
-	printk("registration done --\n");
+	printk("Registration done. 2014-09-05-16-11\n");
+    
 
 	return ret;
 }
