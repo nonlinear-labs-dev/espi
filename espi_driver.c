@@ -1258,12 +1258,16 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 }
 
 
+u8 debug_led_state[9] = { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
 
+// dtz: debug function
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 
-	xfer.tx_buf = rb_led_st;
+
+
+	xfer.tx_buf = debug_led_state;
 	xfer.rx_buf = NULL;
 	xfer.len = RIBBON_LED_STATES_SIZE;
 	xfer.bits_per_word = 8;
@@ -1718,10 +1722,10 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
-    espi_driver_dbg_scan_scs((struct espi_driver *)p);
+	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
 
 #if 0
-	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);// Tut nüscht
+    espi_driver_dbg_scan_scs((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
 	espi_driver_leds_poll((struct espi_driver *)p);
 	espi_driver_poll_buttons_selection((struct espi_driver *)p);
