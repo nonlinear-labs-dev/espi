@@ -1705,7 +1705,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
         port_cnt = ((port_cnt + 1) % 8);
     }
     
-    printk("port: %i, device: %i \n", port_cnt+1, device_cnt+1);
+    //printk("port: %i, device: %i \n", port_cnt+1, device_cnt+1);
     
     espi_driver_scs_select((struct espi_driver *)p, port_cnt + 1, device_cnt);  
 }
@@ -1899,8 +1899,8 @@ static s32 __init espi_driver_init( void )
 	if (ret)
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
-
-	printk("Registration done. 2014-09-05-16-11\n");
+    
+	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
     
 
 	return ret;
