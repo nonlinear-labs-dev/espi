@@ -1272,16 +1272,15 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
-    
-    
-    
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+    
 	espi_driver_scs_select((struct espi_driver*)p, 
                             ESPI_PORT_TOP_COVER, 
                             ESPI_DEVICE_TOP_COVER_RIBBON_LEDS);
                             
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+    
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PORT_TOP_COVER, 0);
 }
 
@@ -1726,10 +1725,10 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
-	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+    espi_driver_dbg_scan_scs((struct espi_driver *)p);
 
 #if 0
-    espi_driver_dbg_scan_scs((struct espi_driver *)p);
+	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
 	espi_driver_leds_poll((struct espi_driver *)p);
 	espi_driver_poll_buttons_selection((struct espi_driver *)p);
@@ -1908,7 +1907,9 @@ static s32 __init espi_driver_init( void )
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
     
-	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
+	//printk("Registration done. %s - %s \n", __DATE__, __TIME__);
+    
+    printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
     
 
 	return ret;
