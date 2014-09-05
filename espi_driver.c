@@ -34,6 +34,7 @@
 
 #if 1 // HW V.2 Rev.C
 #define ESPI_RIBBON_LEDS_PORT		            3
+#define ESPI_PORT_TOP_COVER                     3
 #define ESPI_DEVICE_TOP_COVER_RIBBON_LEDS       2
 
 // alte
@@ -46,11 +47,11 @@
 
 
 
-#if 0 // delete later
+#if 0 // container - move to hw v.2 rev.c - delete later
 
 #define ESPI_PORT_EDIT_PANEL                    0
 #define ESPI_PORT_SELECTION_PANELS              1
-#define ESPI_PORT_TOP_COVER                     3
+
 #define ESPI_PORT_SPARE                         2      
 
 #define ESPI_DEVICE_EDIT_PANEL_BUTTONS          1
@@ -61,7 +62,6 @@
 #define ESPI_DEVICE_SELECTION_PANELS_LEDS       2
 
 #define ESPI_DEVICE_TOP_COVER_BUTTONS           1
-
 #define ESPI_DEVICE_TOP_COVER_SOLED             3
 
 #endif
@@ -1265,8 +1265,6 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 
-
-
 	xfer.tx_buf = debug_led_state;
 	xfer.rx_buf = NULL;
 	xfer.len = RIBBON_LED_STATES_SIZE;
@@ -1274,11 +1272,17 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
+    
+    
+    
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 2);   //ESPI_DEVICE_TOP_COVER_RIBBON_LEDS
+	espi_driver_scs_select((struct espi_driver*)p, 
+                            ESPI_PORT_TOP_COVER, 
+                            ESPI_DEVICE_TOP_COVER_RIBBON_LEDS);
+                            
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
 	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PORT_TOP_COVER, 0);
 }
 
 
