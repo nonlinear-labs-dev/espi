@@ -207,6 +207,9 @@ static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 
 /*******************************************************************************
     eSPI general driver functions
+    @param[in]  port: 1..8
+    @param[in]  device: 1..3
+                        0 -> all off
 *******************************************************************************/
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 {
@@ -474,7 +477,12 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	}
 }
 
-// ************************************************************************************************************************************************
+
+
+
+/*******************************************************************************
+    adc functions
+*******************************************************************************/
 static ssize_t espiadc_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -579,7 +587,10 @@ static void espi_driver_adc_poll(struct espi_driver *p)
 	}
 }
 
-// ************************************************************************************************************************************************
+
+/*******************************************************************************
+    attenuator functions
+*******************************************************************************/
 static ssize_t attenuator_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -688,7 +699,11 @@ static void espi_driver_attenuator_poll(struct espi_driver *p)
 	}
 }
 
-// ***************************************************************************************************************************************************
+
+
+/*******************************************************************************
+    ssd1322 functions (boled)
+*******************************************************************************/
 static ssize_t ssd1322_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	u32 i, j, width, height, x, y, cnt;
@@ -920,8 +935,15 @@ static void espi_driver_ssd1322_poll(struct espi_driver *p)
 	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 0);
 }
 
-// ***************************************************************************************************************************************************
-static ssize_t ssd1305_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+
+
+/*******************************************************************************
+    ssd1305 functions (soled)
+*******************************************************************************/
+static ssize_t ssd1305_write(   struct file *filp, 
+                                const char __user *buf,     
+                                size_t count, 
+                                loff_t *f_pos)
 {
 	ssize_t status = 0;
 	
@@ -1112,8 +1134,13 @@ static void espi_driver_ssd1305_poll(struct espi_driver *p)
 }
 
 
-// ***************************************************************************************************************************************************
-static ssize_t rbled_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+/*******************************************************************************
+    ribbon leds functions
+*******************************************************************************/
+static ssize_t rbled_write( struct file *filp, 
+                            const char __user *buf, 
+                            size_t count, 
+                            loff_t *f_pos)
 {
 	ssize_t status = 0;
 	u32 i;
@@ -1252,7 +1279,9 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 
 
 
-// ************************************************************************************************************************************************
+/*******************************************************************************
+    led functions
+*******************************************************************************/
 static ssize_t espiled_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -1375,8 +1404,15 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
 }
 
-// ************************************************************************************************************************************************
-static ssize_t espibtn_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+
+
+/*******************************************************************************
+    buttons functions
+*******************************************************************************/
+static ssize_t espibtn_write(   struct file *filp, 
+                                const char __user *buf, 
+                                size_t count, 
+                                loff_t *f_pos)
 {
 	ssize_t status = 0;
 	return status;
@@ -1491,8 +1527,6 @@ static s32 espi_driver_buttons_cleanup(struct espi_driver *sb)
 
 	return 0;
 }
-
-
 
 static void espi_driver_poll_buttons_selection(struct espi_driver *p)
 {
@@ -1656,46 +1690,39 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
 }
 
-//static void espi_driver_poll(struct delayed_work *p)
-//{
-//	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
-//
-//	switch(((struct espi_driver *)p)->poll_stage)
-//	{
-//	case 0:
-//	case 2:
-//	case 4:
-//	case 6:
-//		espi_driver_pollbuttons((struct espi_driver *)p);
-//		espi_driver_adc_poll((struct espi_driver *)p);
-//		espi_driver_encoder_poll((struct espi_driver *)p);
-//		break;
-//	case 1:
-//	case 5:
-//		espi_driver_leds_poll((struct espi_driver *)p);
-//		espi_driver_rb_leds_poll((struct espi_driver *)p);
-//		espi_driver_attenuator_poll((struct espi_driver *)p);
-//		break;
-//	case 3:
-//		espi_driver_ssd1305_poll((struct espi_driver *)p);
-//		break;
-//	case 7:
-//		espi_driver_ssd1322_poll((struct espi_driver *)p);
-//		break;
-//	}
-//
-//	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
-//}
 
-// **************************************************************************
+
+static void espi_driver_dbg_scan_scs(struct espi_driver *p)
+{
+    static u8 port_cnt   = 1;    
+    static u8 device_cnt = 1;
+    
+    espi_driver_scs_select((struct espi_driver *)p, port_cnt + 1, 0);  // all off
+    
+    device_cnt = ((device_cnt + 1) % 3);
+    if( device_cnt == 0)
+    {
+        port_cnt = ((port_cnt + 1) % 8);
+    }
+    
+    printk("port: %i, device: %i \n", port_cnt+1, device_cnt+1);
+    
+    espi_driver_scs_select((struct espi_driver *)p, port_cnt + 1, device_cnt);  
+}
+
+
+/*******************************************************************************
+    SCHEDULER
+*******************************************************************************/
+#if 0 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
 
-	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);// Tut nüscht
 
 #if 0
+	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);// Tut nüscht
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
 	espi_driver_leds_poll((struct espi_driver *)p);
 	espi_driver_poll_buttons_selection((struct espi_driver *)p);
@@ -1706,9 +1733,47 @@ static void espi_driver_poll(struct delayed_work *p)
 
 	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
 }
+#endif
 
 
-// **************************************************************************
+#if 0 // nemanjas original scheduler
+static void espi_driver_poll(struct delayed_work *p)
+{
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
+
+	switch(((struct espi_driver *)p)->poll_stage)
+	{
+	case 0:
+	case 2:
+	case 4:
+	case 6:
+		espi_driver_pollbuttons((struct espi_driver *)p);
+		espi_driver_adc_poll((struct espi_driver *)p);
+		espi_driver_encoder_poll((struct espi_driver *)p);
+		break;
+	case 1:
+	case 5:
+		espi_driver_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_attenuator_poll((struct espi_driver *)p);
+		break;
+	case 3:
+		espi_driver_ssd1305_poll((struct espi_driver *)p);
+		break;
+	case 7:
+		espi_driver_ssd1322_poll((struct espi_driver *)p);
+		break;
+	}
+
+	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
+}
+#endif
+
+
+
+/*******************************************************************************
+    eSPI driver functions
+*******************************************************************************/
 static s32 espi_driver_probe(struct spi_device *dev)
 {
 	s32 nscs, i, ret = 0;
@@ -1783,7 +1848,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	return ret;
 }
 
-// **************************************************************************
+
 static s32 espi_driver_remove(struct spi_device *spi)
 {
 	struct espi_driver *sb = (struct espi_driver*)dev_get_drvdata(&spi->dev);
@@ -1804,7 +1869,7 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	return 0;
 }
 
-// **************************************************************************
+
 static struct spi_driver espi_driver_driver = {
 		.driver = {
 				.name = "espi_driver",
@@ -1841,6 +1906,7 @@ static s32 __init espi_driver_init( void )
 	return ret;
 }
 module_init(espi_driver_init);
+
 
 // **************************************************************************
 static void __exit espi_driver_exit( void )
