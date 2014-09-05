@@ -84,7 +84,15 @@ struct espi_driver {
 
 static struct workqueue_struct *workqueue;
 
-/********* Buttons stuff ***********************************************************/
+
+
+
+/*******************************************************************************
+    defines and variables for the different drivers
+*******************************************************************************/
+
+
+/* Buttons stuff **************************************************************/
 #define ESPI_BUTTON_DEV_MAJOR		302
 #define BUTTON_BYTES_GENERAL_PANELS	12
 #define BUTTON_BYTES_CENTRAL_PANEL	3
@@ -98,47 +106,47 @@ static u32 btn_buff_head, btn_buff_tail;
 static DEFINE_MUTEX(btn_buff_tail_lock);
 static DECLARE_WAIT_QUEUE_HEAD(btn_wqueue);
 
-/********* LEDs stuff **************************************************************/
+/* LEDs stuff *****************************************************************/
 #define ESPI_LED_DEV_MAJOR		301
 #define LED_STATES_SIZE			12
 static u8 *led_st;
 static u8 *led_new_st;
 static DEFINE_MUTEX(led_state_lock);
 
-/********* RIBBON LEDs stuff ********************************************************/
+/* RIBBON LEDs stuff **********************************************************/
 #define ESPI_RIBBON_LED_DEV_MAJOR	303
 #define RIBBON_LED_STATES_SIZE		9
 static u8 *rb_led_st;
 static u8 *rb_led_new_st;
 
-/********* SSD1305 stuff *************************************************************/
-#define ESPI_SSD1305_DEV_MAJOR		304
+/* SSD1305 stuff **************************************************************/
+#define ESPI_SSD1305_DEV_MAJOR	304
 
 #define SSD1305_DISP_OFF		0xAE
 #define SSD1305_DISP_ON			0xAF
-#define SSD1305_SET_RATIO_OSC		0xD5
-#define SSD1305_SET_COL_ADDR		0x21
-#define SSD1305_SET_AREA_COLOR		0xD8
-#define SSD1305_SET_SEG_REMAP1		0xA1
-#define SSD1305_SET_SCAN_NOR		0xC8
+#define SSD1305_SET_RATIO_OSC	0xD5
+#define SSD1305_SET_COL_ADDR	0x21
+#define SSD1305_SET_AREA_COLOR	0xD8
+#define SSD1305_SET_SEG_REMAP1	0xA1
+#define SSD1305_SET_SCAN_NOR	0xC8
 #define SSD1305_SET_OFFSET		0xD3
-#define SSD1305_SET_CONTRAST		0x81
-#define SSD1305_SET_CHARGE  		0xD9
-#define SSD1305_SET_VCOM    		0xDB
+#define SSD1305_SET_CONTRAST	0x81
+#define SSD1305_SET_CHARGE  	0xD9
+#define SSD1305_SET_VCOM    	0xDB
 #define SSD1305_EON_OFF			0xA4
 #define SSD1305_DISP_NOR		0xA6
-#define SSD1305_MEM_ADDRESSING 		0x20
+#define SSD1305_MEM_ADDRESSING 	0x20
 #define SSD1305_SET_PAGE		0xB0
 #define SSD1305_SET_COL_HI		0x10
 #define SSD1305_SET_COL_LO		0x00
-#define SSD1305_SET_PAGE_ADDR		0x22
+#define SSD1305_SET_PAGE_ADDR	0x22
 
 #define SSD1305_BUFF_SIZE		(132*4)
 static u8 *ssd1305_buff;
 static u8 *ssd1305_tmp_buff;
 static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 
-/********* SSD1322 stuff *************************************************************/
+/* SSD1322 stuff **************************************************************/
 #define ESPI_SSD1322_DEV_MAJOR		305
 #define ESPI_SSD1322_SPEED		24000000
 
@@ -175,13 +183,13 @@ static u8 *ssd1322_tmp_buff;
 static u8 ssd1322_buff_updated;
 static DEFINE_MUTEX(ssd1322_tmp_buff_lock);
 
-/********* Attenuator stuff *************************************************************/
+/* Attenuator stuff ***********************************************************/
 #define ESPI_ATTENUATOR_DEV_MAJOR		306
 static u8 attenuator_channel_val[3];
 static u8 attenuator_channel_updated[3];
 static DEFINE_MUTEX(attenuator_lock);
 
-/********* ADC stuff *************************************************************/
+/* ADC stuff ******************************************************************/
 #define ESPI_ADC_DEV_MAJOR		307
 #define ESPI_ADC_3201			1
 #define ESPI_ADC_3204			4
@@ -189,25 +197,30 @@ static DEFINE_MUTEX(attenuator_lock);
 #define ESPI_ADC_320X			ESPI_ADC_3208
 static u16 adc_channel_val[ESPI_ADC_320X];
 
-/********* Encoder stuff *************************************************************/
+/* Encoder stuff **************************************************************/
 #define ESPI_ENCODER_DEV_MAJOR		308
 static s8 encoder_delta;
 static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 
-//************************************************************************************
+
+
+
+/*******************************************************************************
+    eSPI general driver functions
+*******************************************************************************/
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 {
 	s32 s;
 
-	gpio_set_value(spi->dmxs_gpio, 1);	// dmxs disable
+	gpio_set_value(spi->dmxs_gpio, 1);	            // dmxs disable: avoid glitches
 
 	if(device == 1 || device == 3)
 		s = 0;
 	else if(device == 2)
 		s = 4;
-	else if (device == 0)
+	else if (device == 0)                           // device 0: all off
 	{
-		gpio_set_value(spi->scs_gpios[0], 0);		// all off
+		gpio_set_value(spi->scs_gpios[0], 0);		
 		gpio_set_value(spi->scs_gpios[1], 0);
 		gpio_set_value(spi->scs_gpios[2], 0);
 		gpio_set_value(spi->scs_gpios[3], 1);		// disable all ports
@@ -215,10 +228,10 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 		gpio_set_value(spi->scs_gpios[5], 0);
 		gpio_set_value(spi->scs_gpios[6], 0);
 		gpio_set_value(spi->scs_gpios[7], 1);		// disable all ports
-		gpio_set_value(spi->dmxs_gpio, 0);	// dmxs enable
+		gpio_set_value(spi->dmxs_gpio, 0);	        // dmxs enable
 		return;
 	} else {
-		gpio_set_value(spi->dmxs_gpio, 0);	// dmxs enable
+		gpio_set_value(spi->dmxs_gpio, 0);	        // dmxs enable
 		return;
 	}
 
@@ -277,10 +290,11 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 		s += 4;
 	} while( (s <= 4) && (device == 3));
 	
-	gpio_set_value(spi->dmxs_gpio, 0);	// dmxs enable
+	gpio_set_value(spi->dmxs_gpio, 0);	            // dmxs enable
 }
 
-// **************************************************************************
+
+
 static s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfer)
 {
 	struct spi_message msg;
@@ -296,7 +310,8 @@ static s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfe
 	return status;
 }
 
-// **************************************************************************
+
+
 static s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 {
 	s32 status;
@@ -317,14 +332,28 @@ static s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 	return status;
 }
 
-// ************************************************************************************************************************************************
-static ssize_t espiencoder_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+
+
+
+
+/*******************************************************************************
+    encoder functions
+*******************************************************************************/
+static ssize_t espiencoder_write(   struct file *filp, 
+                                    const char __user *buf, 
+                                    size_t count, 
+                                    loff_t *f_pos)
 {
 	ssize_t status = 0;
 	return status;
 }
 
-static ssize_t espiencoder_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+
+
+static ssize_t espiencoder_read(    struct file *filp, 
+                                    char __user *buf, 
+                                    size_t count, 
+                                    loff_t *f_pos)
 {
 	ssize_t status = 0;
 
@@ -336,8 +365,11 @@ static ssize_t espiencoder_read(struct file *filp, char __user *buf, size_t coun
 	if ((status = wait_event_interruptible(encoder_wqueue, encoder_delta != 0)))
 		return status;
 
-// TODO: find a solution for cases, where playground crashes, user turn on rotary like crazy, playground restarts and e.g. volume jumps to max.
-	buf[0] = encoder_delta;
+    /**@todo:   find a solution for cases, where playground crashes, 
+                user turn on rotary like crazy, playground restarts and e.g. 
+                volume jumps to max. */
+	
+    buf[0] = encoder_delta;
 	encoder_delta = 0;
 	status = 1;
 
