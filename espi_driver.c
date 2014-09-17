@@ -38,8 +38,6 @@
 #define ESPI_DEVICE_TOP_COVER_RIBBON_LEDS       2
 
 // alte
-#define ESPI_ATTENUATOR_PORT		1
-#define ESPI_ADC_PORT			    6
 #define ESPI_BTN_LED_PANELS_PORT	7
 #define ESPI_LARGE_DISPLAY_PORT		8
 #define ESPI_SMALL_DISPLAY_PORT		5
@@ -75,9 +73,9 @@ struct espi_driver {
 	struct spi_device *spidev;
 
 	// added driver params
-	s32 scs_gpios[8];
-	s32 sap_gpio;
-	s32 dmxs_gpio;
+	s32 gpio_scs[6];
+	s32 gpio_sap;
+	s32 gpio_dmx;
 
 	u8 poll_stage;
 };
@@ -183,20 +181,6 @@ static u8 *ssd1322_tmp_buff;
 static u8 ssd1322_buff_updated;
 static DEFINE_MUTEX(ssd1322_tmp_buff_lock);
 
-/* Attenuator stuff ***********************************************************/
-#define ESPI_ATTENUATOR_DEV_MAJOR		306
-static u8 attenuator_channel_val[3];
-static u8 attenuator_channel_updated[3];
-static DEFINE_MUTEX(attenuator_lock);
-
-/* ADC stuff ******************************************************************/
-#define ESPI_ADC_DEV_MAJOR		307
-#define ESPI_ADC_3201			1
-#define ESPI_ADC_3204			4
-#define ESPI_ADC_3208			8
-#define ESPI_ADC_320X			ESPI_ADC_3208
-static u16 adc_channel_val[ESPI_ADC_320X];
-
 /* Encoder stuff **************************************************************/
 #define ESPI_ENCODER_DEV_MAJOR		308
 static s8 encoder_delta;
@@ -214,86 +198,36 @@ static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 {
 	s32 s;
+	u8 i;
 
-	gpio_set_value(spi->dmxs_gpio, 1);	            // dmxs disable: avoid glitches
+	gpio_set_value(spi->gpio_dmx, 1);	            // dmxs disable: avoid glitches
 
 	if(device == 1 || device == 3)
 		s = 0;
 	else if(device == 2)
-		s = 4;
+		s = 3;
 	else if (device == 0)                           // device 0: all off
 	{
-		gpio_set_value(spi->scs_gpios[0], 0);		
-		gpio_set_value(spi->scs_gpios[1], 0);
-		gpio_set_value(spi->scs_gpios[2], 0);
-		gpio_set_value(spi->scs_gpios[3], 1);		// disable all ports
-		gpio_set_value(spi->scs_gpios[4], 0);		// all off
-		gpio_set_value(spi->scs_gpios[5], 0);
-		gpio_set_value(spi->scs_gpios[6], 0);
-		gpio_set_value(spi->scs_gpios[7], 1);		// disable all ports
-		gpio_set_value(spi->dmxs_gpio, 0);	        // dmxs enable
+		device = 3;
+		port = 8;				// disable all - select unused port
 		return;
 	} else {
-		gpio_set_value(spi->dmxs_gpio, 0);	        // dmxs enable
+		gpio_set_value(spi->gpio_dmx, 0);	        // dmxs enable
 		return;
 	}
 
+	port -= 1;
 	do {
-		switch (port)
-		{
-		case 1:
-			gpio_set_value(spi->scs_gpios[0+s], 0);	// Port 1, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 0);
-			gpio_set_value(spi->scs_gpios[2+s], 0);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 2:
-			gpio_set_value(spi->scs_gpios[0+s], 1);	// Port 2, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 0);
-			gpio_set_value(spi->scs_gpios[2+s], 0);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 3:
-			gpio_set_value(spi->scs_gpios[0+s], 0);	// Port 3, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 1);
-			gpio_set_value(spi->scs_gpios[2+s], 0);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 4:
-			gpio_set_value(spi->scs_gpios[0+s], 1);	// Port 4, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 1);
-			gpio_set_value(spi->scs_gpios[2+s], 0);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 5:
-			gpio_set_value(spi->scs_gpios[0+s], 0);	// Port 5, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 0);
-			gpio_set_value(spi->scs_gpios[2+s], 1);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 6:
-			gpio_set_value(spi->scs_gpios[0+s], 1);	// Port 6, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 0);
-			gpio_set_value(spi->scs_gpios[2+s], 1);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 7:
-			gpio_set_value(spi->scs_gpios[0+s], 0);	// Port 7, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 1);
-			gpio_set_value(spi->scs_gpios[2+s], 1);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
-		case 8:
-			gpio_set_value(spi->scs_gpios[0+s], 1);	// Port 8, Device s/4+1 -> ON
-			gpio_set_value(spi->scs_gpios[1+s], 1);
-			gpio_set_value(spi->scs_gpios[2+s], 1);
-			gpio_set_value(spi->scs_gpios[3+s], 0);
-			break;
+		for(i=0; i<3; i++) {
+			if(port & (1<<i))
+				gpio_set_value(gpio_scs[i+s], 1);
+			else
+				gpio_set_value(gpio_scs[i+s], 0);
 		}
-		s += 4;
-	} while( (s <= 4) && (device == 3));
+		s += 3;
+	} while( (s <= 3) && (device == 3));
 	
-	gpio_set_value(spi->dmxs_gpio, 0);	            // dmxs enable
+	gpio_set_value(spi->gpio_dmx, 0);	            // dmxs enable
 }
 
 
@@ -342,7 +276,7 @@ static s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 /*******************************************************************************
     encoder functions
 *******************************************************************************/
-static ssize_t espiencoder_write(   struct file *filp, 
+static ssize_t encoder_fops_write(   struct file *filp, 
                                     const char __user *buf, 
                                     size_t count, 
                                     loff_t *f_pos)
@@ -353,7 +287,7 @@ static ssize_t espiencoder_write(   struct file *filp,
 
 
 
-static ssize_t espiencoder_read(    struct file *filp, 
+static ssize_t encoder_fops_read(    struct file *filp, 
                                     char __user *buf, 
                                     size_t count, 
                                     loff_t *f_pos)
@@ -379,20 +313,20 @@ static ssize_t espiencoder_read(    struct file *filp,
 	return status;
 }
 
-static s32 espiencoder_open(struct inode *inode, struct file *filp)
+static s32 encoder_fops_open(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	nonseekable_open(inode, filp);
 	return status;
 }
 
-static s32 espiencoder_release(struct inode *inode, struct file *filp)
+static s32 encoder_fops_release(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	return status;
 }
 
-static unsigned int espiencoder_poll(struct file *filp, poll_table *wait)
+static unsigned int encoder_fops_poll(struct file *filp, poll_table *wait)
 {
 
 	unsigned int mask = 0;
@@ -407,17 +341,17 @@ static unsigned int espiencoder_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
-static const struct file_operations espiencoder_fops = {
+static const struct file_operations encoder_fops = {
 		.owner = 	THIS_MODULE,
-		.write = 	espiencoder_write,
-		.read =		espiencoder_read,
-		.open =		espiencoder_open,
-		.release = 	espiencoder_release,
+		.write = 	encoder_fops_write,
+		.read =		encoder_fops_read,
+		.open =		encoder_fops_open,
+		.release = 	encoder_fops_release,
 		.llseek = 	no_llseek,
-		.poll =		espiencoder_poll,
+		.poll =		encoder_fops_poll,
 };
 
-static struct class *espiencoder_class;
+static struct class *encoder_class;
 
 static s32 espi_driver_encoder_setup(struct espi_driver *sb)
 {
@@ -425,23 +359,23 @@ static s32 espi_driver_encoder_setup(struct espi_driver *sb)
 	
 	encoder_delta = 0;
 
-	ret = register_chrdev(ESPI_ENCODER_DEV_MAJOR, "spi", &espiencoder_fops);
+	ret = register_chrdev(ESPI_ENCODER_DEV_MAJOR, "spi", &encoder_fops);
 	if (ret < 0)
 		pr_err("%s: problem at register_chrdev\n", __func__);
 
-	espiencoder_class = class_create(THIS_MODULE, "espi-encoder");
-	if(IS_ERR(espiencoder_class))
+	encoder_class = class_create(THIS_MODULE, "espi-encoder");
+	if(IS_ERR(encoder_class))
 		pr_err("%s: unable to create class\n", __func__);
 
-	device_create(espiencoder_class, sb->dev, MKDEV(ESPI_ENCODER_DEV_MAJOR, 0), sb, "espi_encoder");
+	device_create(encoder_class, sb->dev, MKDEV(ESPI_ENCODER_DEV_MAJOR, 0), sb, "espi_encoder");
 
 	return 0;
 }
 
 static s32 espi_driver_encoder_cleanup(struct espi_driver *sb)
 {
-	device_destroy(espiencoder_class, MKDEV(ESPI_ENCODER_DEV_MAJOR, 0));
-	class_destroy(espiencoder_class);
+	device_destroy(encoder_class, MKDEV(ESPI_ENCODER_DEV_MAJOR, 0));
+	class_destroy(encoder_class);
 	unregister_chrdev(ESPI_ENCODER_DEV_MAJOR, "spi");
 
 	return 0;
@@ -476,230 +410,6 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 		}
 	}
 }
-
-
-
-
-/*******************************************************************************
-    adc functions
-*******************************************************************************/
-static ssize_t espiadc_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static ssize_t espiadc_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	int i;
-	u16* vals = (u16*) buf;
-	
-	if(count >= (ESPI_ADC_320X * sizeof(u16))) {
-		for(i=0; i < ESPI_ADC_320X; i++)
-			vals[i] = adc_channel_val[i];
-		status = ESPI_ADC_320X;
-	}
-	
-	return status;
-}
-
-static s32 espiadc_open(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static s32 espiadc_release(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	return status;
-}
-
-static const struct file_operations espiadc_fops = {
-		.owner = 	THIS_MODULE,
-		.write = 	espiadc_write,
-		.read =		espiadc_read,
-		.open =		espiadc_open,
-		.release = 	espiadc_release,
-		.llseek = 	no_llseek,
-};
-
-static struct class *espiadc_class;
-
-static s32 espi_driver_adc_setup(struct espi_driver *sb)
-{
-	s32 i, ret;
-
-	for(i=0; i < ESPI_ADC_320X; i++) {
-		adc_channel_val[i] = 0x0000;
-	}
-	
-	ret = register_chrdev(ESPI_ADC_DEV_MAJOR, "spi", &espiadc_fops);
-	if (ret < 0)
-		pr_err("%s: problem at register_chrdev\n", __func__);
-
-	espiadc_class = class_create(THIS_MODULE, "adc-320x");
-	if(IS_ERR(espiadc_class))
-		pr_err("%s: unable to create class\n", __func__);
-
-	device_create(espiadc_class, sb->dev, MKDEV(ESPI_ADC_DEV_MAJOR, 0), sb, "mcp320x-adc");
-
-	return 0;
-}
-
-static s32 espi_driver_adc_cleanup(struct espi_driver *sb)
-{
-	device_destroy(espiadc_class, MKDEV(ESPI_ADC_DEV_MAJOR, 0));
-	class_destroy(espiadc_class);
-	unregister_chrdev(ESPI_ADC_DEV_MAJOR, "spi");
-
-	return 0;
-}
-
-static void espi_driver_adc_poll(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx_buff[3];
-	u8 tx_buff[3];
-	u8 i;
-	u16 tmp;
-
-	for(i=0; i < ESPI_ADC_320X; i++) {
-		tx_buff[0] = 0x6 | (i >> 2);
-		tx_buff[1] = i << 6;
-		tx_buff[2] = 0;
-		
-		xfer.tx_buf = tx_buff;
-		xfer.rx_buf = rx_buff;
-		xfer.len = 3;
-		xfer.bits_per_word = 8;
-		xfer.delay_usecs = 0;
-		xfer.speed_hz = ESPI_SPI_SPEED;
-		
-		espi_driver_scs_select((struct espi_driver*)p, ESPI_ADC_PORT, 1);
-		espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-		espi_driver_scs_select((struct espi_driver*)p, ESPI_ADC_PORT, 0);
-		
-		tmp = ((rx_buff[1] & 0xF)<<8) | rx_buff[2];
-		adc_channel_val[i] = tmp;
-	}
-}
-
-
-/*******************************************************************************
-    attenuator functions
-*******************************************************************************/
-static ssize_t attenuator_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-
-	if(buf[0] >= 3 && count != 2)
-		return -EFAULT;
-		
-	if(buf[1] != attenuator_channel_val[(const unsigned char)buf[0]]) {
-		mutex_lock(&attenuator_lock);
-		attenuator_channel_val[(const unsigned char)buf[0]] = buf[1];
-		attenuator_channel_updated[(const unsigned char)buf[0]] = 1;
-		status = 2;
-		mutex_unlock(&attenuator_lock);
-	}
-	
-	return status;
-}
-
-static ssize_t attenuator_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static s32 attenuator_open(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static s32 attenuator_release(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	return status;
-}
-
-static const struct file_operations attenuator_fops = {
-		.owner = 	THIS_MODULE,
-		.write = 	attenuator_write,
-		.read =		attenuator_read,
-		.open =		attenuator_open,
-		.release = 	attenuator_release,
-		.llseek = 	no_llseek,
-};
-
-static struct class *attenuator_class;
-
-static s32 espi_driver_attenuator_setup(struct espi_driver *sb)
-{
-	s32 i, ret;
-
-	for(i=0; i<3; i++) {
-		attenuator_channel_updated[i] = 0;
-		attenuator_channel_val[i] = 0xFF;
-	}
-	
-	ret = register_chrdev(ESPI_ATTENUATOR_DEV_MAJOR, "spi", &attenuator_fops);
-	if (ret < 0)
-		pr_err("%s: problem at register_chrdev\n", __func__);
-
-	attenuator_class = class_create(THIS_MODULE, "attenuator-LM1972");
-	if(IS_ERR(attenuator_class))
-		pr_err("%s: unable to create class\n", __func__);
-
-	device_create(attenuator_class, sb->dev, MKDEV(ESPI_ATTENUATOR_DEV_MAJOR, 0), sb, "lm1972-attenuator");
-
-	return 0;
-}
-
-static s32 espi_driver_attenuator_cleanup(struct espi_driver *sb)
-{
-	device_destroy(attenuator_class, MKDEV(ESPI_ATTENUATOR_DEV_MAJOR, 0));
-	class_destroy(attenuator_class);
-	unregister_chrdev(ESPI_ATTENUATOR_DEV_MAJOR, "spi");
-
-	return 0;
-}
-
-static void espi_driver_attenuator_poll(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 tmp_buff[2];
-	u32 i;
-
-	for(i=0; i<3; i++) {
-		if(attenuator_channel_updated[i]) {
-			mutex_lock(&attenuator_lock);
-			tmp_buff[0] = i;
-			tmp_buff[1] = attenuator_channel_val[i];
-			attenuator_channel_updated[i] = 0;
-			mutex_unlock(&attenuator_lock);
-			
-			xfer.tx_buf = tmp_buff;
-			xfer.rx_buf = NULL;
-			xfer.len = 2;
-			xfer.bits_per_word = 8;
-			xfer.delay_usecs = 0;
-			xfer.speed_hz = ESPI_SPI_SPEED;
-			
-			espi_driver_scs_select((struct espi_driver*)p, ESPI_ATTENUATOR_PORT, 1);
-			espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-			espi_driver_scs_select((struct espi_driver*)p, ESPI_ATTENUATOR_PORT, 0);
-			
-		}
-	}
-}
-
-
 
 /*******************************************************************************
     ssd1322 functions (boled)
@@ -774,9 +484,9 @@ static void ssd1322_command(struct espi_driver* sb, u8 cmd, u8* data, u16 len)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SSD1322_SPEED;
 	
-	gpio_set_value(sb->sap_gpio, 0);
+	gpio_set_value(sb->gpio_sap, 0);
 	espi_driver_transfer(sb->spidev, &xfer);
-	gpio_set_value(sb->sap_gpio, 1);
+	gpio_set_value(sb->gpio_sap, 1);
 	
 	if(data == NULL)
 		return;
@@ -906,13 +616,14 @@ static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
+#if 0 //????
 static void espi_driver_poll_boled_force_write(struct espi_driver *p)
 {
 	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 2);
 	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
 	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 0);
 }
-
+#endif
 
 static void espi_driver_ssd1322_poll(struct espi_driver *p)
 {
@@ -1043,11 +754,11 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
-	gpio_set_value(sb->sap_gpio, 0);
+	gpio_set_value(sb->gpio_sap, 0);
 	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 1);
 	espi_driver_transfer(sb->spidev, &xfer);
 	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 0);
-	gpio_set_value(sb->sap_gpio, 1);
+	gpio_set_value(sb->gpio_sap, 1);
 
 	for(i=0; i<SSD1305_BUFF_SIZE; i++)
 		ssd1305_buff[i] = ssd1305_tmp_buff[i] = 0;
@@ -1085,6 +796,7 @@ static s32 espi_driver_ssd1305_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
+#if 0
 static void espi_driver_poll_soled_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
@@ -1096,11 +808,12 @@ static void espi_driver_poll_soled_force_write(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
 }
+#endif
 
 static void espi_driver_ssd1305_poll(struct espi_driver *p)
 {
@@ -1127,7 +840,7 @@ static void espi_driver_ssd1305_poll(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
@@ -1252,8 +965,8 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 1);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
 
@@ -1278,8 +991,8 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
                             ESPI_PORT_TOP_COVER, 
                             ESPI_DEVICE_TOP_COVER_RIBBON_LEDS);
                             
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
     
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PORT_TOP_COVER, 0);
 }
@@ -1289,7 +1002,7 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 /*******************************************************************************
     led functions
 *******************************************************************************/
-static ssize_t espiled_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+static ssize_t led_fops_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
 	u32 i;
@@ -1311,35 +1024,35 @@ static ssize_t espiled_write(struct file *filp, const char __user *buf, size_t c
 	return status;
 }
 
-static ssize_t espiled_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+static ssize_t led_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
 	return status;
 }
 
-static s32 espiled_open(struct inode *inode, struct file *filp)
+static s32 led_fops_open(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	nonseekable_open(inode, filp);
 	return status;
 }
 
-static s32 espiled_release(struct inode *inode, struct file *filp)
+static s32 led_fops_release(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	return status;
 }
 
-static const struct file_operations espiled_fops = {
+static const struct file_operations led_fops = {
 		.owner = 	THIS_MODULE,
-		.write = 	espiled_write,
-		.read =		espiled_read,
-		.open =		espiled_open,
-		.release = 	espiled_release,
+		.write = 	led_fops_write,
+		.read =		led_fops_read,
+		.open =		led_fops_open,
+		.release = 	led_fops_release,
 		.llseek = 	no_llseek,
 };
 
-static struct class *espiled_class;
+static struct class *led_class;
 
 static s32 espi_driver_leds_setup(struct espi_driver *sb)
 {
@@ -1355,15 +1068,15 @@ static s32 espi_driver_leds_setup(struct espi_driver *sb)
 	for(i=0; i<LED_STATES_SIZE; i++)
 		led_new_st[i] = led_st[i] = 0;
 
-	ret = register_chrdev(ESPI_LED_DEV_MAJOR, "spi", &espiled_fops);
+	ret = register_chrdev(ESPI_LED_DEV_MAJOR, "spi", &led_fops);
 	if (ret < 0)
 		pr_err("%s: problem at register_chrdev\n", __func__);
 
-	espiled_class = class_create(THIS_MODULE, "espi-led");
-	if(IS_ERR(espiled_class))
+	led_class = class_create(THIS_MODULE, "espi-led");
+	if(IS_ERR(led_class))
 		pr_err("%s: unable to create class\n", __func__);
 
-	device_create(espiled_class, sb->dev, MKDEV(ESPI_LED_DEV_MAJOR, 0), sb, "espi_led");
+	device_create(led_class, sb->dev, MKDEV(ESPI_LED_DEV_MAJOR, 0), sb, "espi_led");
 
 	return 0;
 }
@@ -1373,8 +1086,8 @@ static s32 espi_driver_leds_cleanup(struct espi_driver *sb)
 	kfree(led_st);
 	kfree(led_new_st);
 
-	device_destroy(espiled_class, MKDEV(ESPI_LED_DEV_MAJOR, 0));
-	class_destroy(espiled_class);
+	device_destroy(led_class, MKDEV(ESPI_LED_DEV_MAJOR, 0));
+	class_destroy(led_class);
 	unregister_chrdev(ESPI_LED_DEV_MAJOR, "spi");
 
 	return 0;
@@ -1406,8 +1119,8 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 1);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
 }
 
@@ -1416,7 +1129,7 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 /*******************************************************************************
     buttons functions
 *******************************************************************************/
-static ssize_t espibtn_write(   struct file *filp, 
+static ssize_t buttons_fops_write(   struct file *filp, 
                                 const char __user *buf, 
                                 size_t count, 
                                 loff_t *f_pos)
@@ -1425,7 +1138,7 @@ static ssize_t espibtn_write(   struct file *filp,
 	return status;
 }
 
-static ssize_t espibtn_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+static ssize_t buttons_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
 
@@ -1448,20 +1161,20 @@ static ssize_t espibtn_read(struct file *filp, char __user *buf, size_t count, l
 	return status;
 }
 
-static int espibtn_open(struct inode *inode, struct file *filp)
+static int buttons_fops_open(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	nonseekable_open(inode, filp);
 	return status;
 }
 
-static int espibtn_release(struct inode *inode, struct file *filp)
+static int buttons_fops_release(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
 	return status;
 }
 
-static unsigned int espibtn_poll(struct file *filp, poll_table *wait)
+static unsigned int buttons_fops_poll(struct file *filp, poll_table *wait)
 {
 
 	unsigned int mask = 0;
@@ -1476,17 +1189,17 @@ static unsigned int espibtn_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
-static const struct file_operations espibtn_fops = {
+static const struct file_operations buttons_fops = {
 		.owner = 	THIS_MODULE,
-		.write = 	espibtn_write,
-		.read =		espibtn_read,
-		.open =		espibtn_open,
-		.release = 	espibtn_release,
+		.write = 	buttons_fops_write,
+		.read =		buttons_fops_read,
+		.open =		buttons_fops_open,
+		.release = 	buttons_fops_release,
 		.llseek = 	no_llseek,
-		.poll =		espibtn_poll,
+		.poll =		buttons_fops_poll,
 };
 
-static struct class *espibtn_class;
+static struct class *buttons_class;
 
 static s32 espi_driver_buttons_setup(struct espi_driver *sb)
 {
@@ -1509,15 +1222,15 @@ static s32 espi_driver_buttons_setup(struct espi_driver *sb)
 
 	btn_buff_head = btn_buff_tail = 0;
 
-	ret = register_chrdev(ESPI_BUTTON_DEV_MAJOR, "spi", &espibtn_fops);
+	ret = register_chrdev(ESPI_BUTTON_DEV_MAJOR, "spi", &buttons_fops);
 	if (ret < 0)
 		pr_err("%s: problem at register_chrdev\n", __func__);
 
-	espibtn_class = class_create(THIS_MODULE, "espi-button");
-	if(IS_ERR(espibtn_class))
+	buttons_class = class_create(THIS_MODULE, "espi-button");
+	if(IS_ERR(buttons_class))
 		pr_err("%s: unable to create class\n", __func__);
 
-	device_create(espibtn_class, sb->dev, MKDEV(ESPI_BUTTON_DEV_MAJOR, 0), sb, "espi_buttons");
+	device_create(buttons_class, sb->dev, MKDEV(ESPI_BUTTON_DEV_MAJOR, 0), sb, "espi_buttons");
 
 	return 0;
 }
@@ -1528,8 +1241,8 @@ static s32 espi_driver_buttons_cleanup(struct espi_driver *sb)
 	kfree(btn_st);
 	kfree(button_buff);
 
-	device_destroy(espibtn_class, MKDEV(ESPI_BUTTON_DEV_MAJOR, 0));
-	class_destroy(espibtn_class);
+	device_destroy(buttons_class, MKDEV(ESPI_BUTTON_DEV_MAJOR, 0));
+	class_destroy(buttons_class);
 	unregister_chrdev(ESPI_BUTTON_DEV_MAJOR, "spi");
 
 	return 0;
@@ -1552,8 +1265,8 @@ static void espi_driver_poll_buttons_selection(struct espi_driver *p)
 
 	/** read general panels */
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 2);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
 
@@ -1582,8 +1295,8 @@ static void espi_driver_poll_buttons_play(struct espi_driver *p)
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
 	xfer.len = BUTTON_BYTES_SOLED_PANEL;
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 2);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
 	
@@ -1612,8 +1325,8 @@ static void espi_driver_poll_buttons_edit(struct espi_driver *p)
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
 	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 1);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
 
@@ -1639,8 +1352,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 
 	/** read general panels */
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 2);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
 
@@ -1649,8 +1362,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
 	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 1);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
 
@@ -1659,8 +1372,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
 	xfer.len = BUTTON_BYTES_SOLED_PANEL;
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 2);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 0);
-	gpio_set_value(((struct espi_driver *)p)->sap_gpio, 1);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
       
@@ -1804,32 +1517,32 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	}
 	/** fetch gpio numbers */
 	for(i=0; i<8; i++) {
-		sb->scs_gpios[i] = of_get_named_gpio(dn, "scs-gpios", i);
-		if (!gpio_is_valid(sb->scs_gpios[i])) {
+		sb->gpio_scs[i] = of_get_named_gpio(dn, "scs-gpios", i);
+		if (!gpio_is_valid(sb->gpio_scs[i])) {
 			dev_err(&dev->dev, "%s: scs-gpios[%d] in the device tree incorrect\n", __func__, i);
 			return -EINVAL;
 		}
 	}
-	sb->sap_gpio = of_get_named_gpio(dn, "sap-gpio", 0);
-	if (!gpio_is_valid(sb->sap_gpio)) {
+	sb->gpio_sap = of_get_named_gpio(dn, "sap-gpio", 0);
+	if (!gpio_is_valid(sb->gpio_sap)) {
 		dev_err(&dev->dev, "%s: sap-gpio in the device tree incorrect\n", __func__);
 		return -EINVAL;
 	}
-	sb->dmxs_gpio = of_get_named_gpio(dn, "dmxs-gpio", 0);
-	if (!gpio_is_valid(sb->dmxs_gpio)) {
+	sb->gpio_dmx = of_get_named_gpio(dn, "dmxs-gpio", 0);
+	if (!gpio_is_valid(sb->gpio_dmx)) {
 		dev_err(&dev->dev, "%s: dmxs-gpio in the device tree incorrect\n", __func__);
 		return -EINVAL;
 	}
 	/** request gpios */
 	for(i=0; i<8; i++) {
-		ret = devm_gpio_request_one(&dev->dev, sb->scs_gpios[i], GPIOF_OUT_INIT_LOW, "scs_gpios");
+		ret = devm_gpio_request_one(&dev->dev, sb->gpio_scs[i], GPIOF_OUT_INIT_LOW, "gpio_scs");
 		if(ret) {
-			dev_err(&dev->dev, "%s: failed to request gpio: %d\n", __func__, sb->scs_gpios[i]);
+			dev_err(&dev->dev, "%s: failed to request gpio: %d\n", __func__, sb->gpio_scs[i]);
 			return ret;
 		}
 	}
-	ret = devm_gpio_request_one(&dev->dev, sb->sap_gpio, GPIOF_OUT_INIT_HIGH, "sap_gpio");
-	ret = devm_gpio_request_one(&dev->dev, sb->dmxs_gpio, GPIOF_OUT_INIT_HIGH, "dmxs_gpio");
+	ret = devm_gpio_request_one(&dev->dev, sb->gpio_sap, GPIOF_OUT_INIT_HIGH, "gpio_sap");
+	ret = devm_gpio_request_one(&dev->dev, sb->gpio_dmx, GPIOF_OUT_INIT_HIGH, "gpio_dmx");
 
 	/** added by nni } ******************************************************/
 
@@ -1844,8 +1557,6 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_ssd1305_setup(sb);
 	espi_driver_ssd1322_setup(sb);
-	espi_driver_adc_setup(sb);
-	espi_driver_attenuator_setup(sb);
 	espi_driver_encoder_setup(sb);
 
 	INIT_DELAYED_WORK(&(sb->work), espi_driver_poll);
@@ -1864,8 +1575,6 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	cancel_delayed_work(&(sb->work));
 
 	espi_driver_encoder_cleanup(sb);
-	espi_driver_attenuator_cleanup(sb);
-	espi_driver_adc_cleanup(sb);
 	espi_driver_ssd1322_cleanup(sb);
 	espi_driver_ssd1305_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
