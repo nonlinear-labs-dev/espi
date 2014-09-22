@@ -1136,7 +1136,34 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
 
+u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+// dtz: debug function
+static void espi_driver_leds_poll_force_write(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 i;
+	
+	if(debug_sel_led_state[0] == 0xFF)
+		for(i=0; i<LED_STATES_SIZE; i++)
+			debug_sel_led_state[i] = 0x00;
+	else
+		for(i=0; i<LED_STATES_SIZE; i++)
+			debug_sel_led_state[i] = 0xFF;
+
+	xfer.tx_buf = debug_sel_led_state;
+	xfer.rx_buf = NULL;
+	xfer.len = LED_STATES_SIZE;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_LEDS_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
+}
 
 /*******************************************************************************
     buttons functions
@@ -1452,7 +1479,8 @@ static void espi_driver_poll(struct delayed_work *p)
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(500));
     //espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
-espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+espi_driver_leds_poll_force_write((struct espi_driver *)p);
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
