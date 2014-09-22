@@ -229,9 +229,9 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 	do {
 		for(i=0; i<3; i++) {
 			if(port & (1<<i))
-				gpio_set_value(gpio_scs[i+s], 1);
+				gpio_set_value(spi->gpio_scs[i+s], 1);
 			else
-				gpio_set_value(gpio_scs[i+s], 0);
+				gpio_set_value(spi->gpio_scs[i+s], 0);
 		}
 		s += 3;
 	} while( (s <= 3) && (device == 3));
