@@ -43,7 +43,7 @@
 #define ESPI_SELECTION_LEDS_DEVICE	1
 
 #define ESPI_RIBBON_LEDS_PORT		3
-#define ESPI_RIBBON_LEDS_DEVICE		2
+#define ESPI_RIBBON_LEDS_DEVICE		3
 
 #define ESPI_PLAY_PANEL_PORT		3
 #define ESPI_PLAY_BUTTONS_DEVICE	1
@@ -1476,11 +1476,13 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(500));
-    //espi_driver_dbg_scan_scs((struct espi_driver *)p);
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(250));
+    	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
-//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-espi_driver_leds_poll_force_write((struct espi_driver *)p);
+	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+	espi_driver_leds_poll_force_write((struct espi_driver *)p);
+
+
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
