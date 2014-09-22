@@ -200,7 +200,7 @@ static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 
 /*******************************************************************************
     eSPI general driver functions
-    @param[in]  port: 1..8
+    @param[in]  port: 0..7
     @param[in]  device: 1..3
                         0 -> all off
 *******************************************************************************/
@@ -219,13 +219,12 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 	{
 		s = 0;
 		device = 3;
-		port = 8;				// disable all - select unused port
+		port = 7;				// disable all - select unused port
 	} else {
 		gpio_set_value(spi->gpio_dmx, 0);	        // dmxs enable
 		return;
 	}
 
-	port -= 1;
 	do {
 		for(i=0; i<3; i++) {
 			if(port & (1<<i))
