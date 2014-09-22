@@ -33,14 +33,22 @@
 
 
 #if 1 // HW V.2 Rev.C
-#define ESPI_RIBBON_LEDS_PORT		            3
-#define ESPI_PORT_TOP_COVER                     3
-#define ESPI_DEVICE_TOP_COVER_RIBBON_LEDS       2
+#define ESPI_EDIT_PANEL_PORT		0
+#define ESPI_EDIT_BUTTONS_DEVICE	1
+#define ESPI_EDIT_BOLED_DEVICE		2
+#define ESPI_EDIT_ENCODER_DEVICE	3
 
-// alte
-#define ESPI_BTN_LED_PANELS_PORT	7
-#define ESPI_LARGE_DISPLAY_PORT		8
-#define ESPI_SMALL_DISPLAY_PORT		5
+#define ESPI_SELECTION_PANEL_PORT	1
+#define ESPI_SELECTION_BUTTONS_DEVICE	1
+#define ESPI_SELECTION_LEDS_DEVICE	2
+
+#define ESPI_RIBBON_LEDS_PORT		3
+#define ESPI_RIBBON_LEDS_DEVICE		2
+
+#define ESPI_PLAY_PANEL_PORT		3
+#define ESPI_PLAY_BUTTONS_DEVICE	1
+#define ESPI_PLAY_SOLED_DEVICE		3
+
 #endif
 
 
@@ -66,6 +74,7 @@
 
 
 #define ESPI_SPI_SPEED	1000000
+#define ESPI_SCS_NUM	6
 
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
@@ -73,7 +82,7 @@ struct espi_driver {
 	struct spi_device *spidev;
 
 	// added driver params
-	s32 gpio_scs[6];
+	s32 gpio_scs[ESPI_SCS_NUM];
 	s32 gpio_sap;
 	s32 gpio_dmx;
 
@@ -396,9 +405,9 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 3);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 	
 	if(rx_buff[2] != 0 ) {
 		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
@@ -531,7 +540,7 @@ static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 		ssd1322_buff[i] = ssd1322_tmp_buff[i] = 0x00;
 	
 	/** DISPLAY INITIALIZATION *************/
-	espi_driver_scs_select(sb, ESPI_LARGE_DISPLAY_PORT, 2);
+	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
 	
 	data[0] = 0x12;
 	ssd1322_command(sb, SSD1322_SET_CMD_LOCK, data, 1);
@@ -588,7 +597,7 @@ static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 	ssd1322_command(sb, SSD1322_WRITE_RAM, NULL, 0);
 	ssd1322_data(sb, ssd1322_buff, SSD1322_BUFF_SIZE);
 	
-	espi_driver_scs_select(sb, ESPI_LARGE_DISPLAY_PORT, 0);
+	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, 0);
 	
 	/**** prepare device ***/
 	ret = register_chrdev(ESPI_SSD1322_DEV_MAJOR, "spi", &ssd1322_fops);
@@ -641,9 +650,9 @@ static void espi_driver_ssd1322_poll(struct espi_driver *p)
 	if(update == 0)
 		return;
 	
-	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 2);
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
 	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
-	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 0);
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, 0);
 }
 
 
@@ -755,9 +764,9 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
 	gpio_set_value(sb->gpio_sap, 0);
-	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 1);
+	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(sb->spidev, &xfer);
-	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 0);
+	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
 
 	for(i=0; i<SSD1305_BUFF_SIZE; i++)
@@ -766,9 +775,9 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
 	xfer.len = SSD1305_BUFF_SIZE;
-	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 1);
+	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(sb->spidev, &xfer);
-	espi_driver_scs_select(sb, ESPI_SMALL_DISPLAY_PORT, 0);
+	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	
 	/**** prepare device ***/
 	ret = register_chrdev(ESPI_SSD1305_DEV_MAJOR, "spi", &ssd1305_fops);
@@ -841,9 +850,9 @@ static void espi_driver_ssd1305_poll(struct espi_driver *p)
 	xfer.speed_hz = ESPI_SPI_SPEED;
 	
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
 }
 
 
@@ -964,7 +973,7 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
@@ -977,6 +986,14 @@ u8 debug_led_state[9] = { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
+	u8 i;
+	
+	if(debug_led_state[0] == 0xAA)
+		for(i=0; i<9; i++)
+			debug_led_state[i] = 0x55;
+	else
+		for(i=0; i<9; i++)
+			debug_led_state[i] = 0xAA;
 
 	xfer.tx_buf = debug_led_state;
 	xfer.rx_buf = NULL;
@@ -987,14 +1004,10 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
     
-	espi_driver_scs_select((struct espi_driver*)p, 
-                            ESPI_PORT_TOP_COVER, 
-                            ESPI_DEVICE_TOP_COVER_RIBBON_LEDS);
-                            
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-    
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_PORT_TOP_COVER, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
 
 
@@ -1118,10 +1131,10 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_LEDS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
 
 
@@ -1264,11 +1277,11 @@ static void espi_driver_poll_buttons_selection(struct espi_driver *p)
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
 
 	/** read general panels */
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 2);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 
 
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
@@ -1294,11 +1307,11 @@ static void espi_driver_poll_buttons_play(struct espi_driver *p)
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
 	xfer.len = BUTTON_BYTES_SOLED_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 2);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
 	
 
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
@@ -1324,11 +1337,11 @@ static void espi_driver_poll_buttons_edit(struct espi_driver *p)
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
 	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 
 
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
@@ -1351,31 +1364,31 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
 
 	/** read general panels */
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 2);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_BTN_LED_PANELS_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 
 	/** read central (big oled) panel */
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
 	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_LARGE_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 
 	/** read small oled panel */
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
 	xfer.len = BUTTON_BYTES_SOLED_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 2);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_BUTTONS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
       
       /***** MASKING ******/
 	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
@@ -1437,9 +1450,10 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(500));
     espi_driver_dbg_scan_scs((struct espi_driver *)p);
-
+    
+espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
@@ -1450,7 +1464,7 @@ static void espi_driver_poll(struct delayed_work *p)
     espi_driver_encoder_poll((struct espi_driver *)p);
 #endif
 
-	((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
+	//((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
 }
 #endif
 
@@ -1511,12 +1525,12 @@ static s32 espi_driver_probe(struct spi_device *dev)
 
 	/** check DT entries */
 	nscs = of_gpio_named_count(dn, "scs-gpios");
-	if( nscs != 8 || nscs == -ENOENT) {
+	if( nscs != ESPI_SCS_NUM || nscs == -ENOENT) {
 		dev_err(&dev->dev, "%s: number of scs-gpios in the device tree incorrect\n", __func__);
 		return -ENOENT;
 	}
 	/** fetch gpio numbers */
-	for(i=0; i<8; i++) {
+	for(i=0; i<ESPI_SCS_NUM; i++) {
 		sb->gpio_scs[i] = of_get_named_gpio(dn, "scs-gpios", i);
 		if (!gpio_is_valid(sb->gpio_scs[i])) {
 			dev_err(&dev->dev, "%s: scs-gpios[%d] in the device tree incorrect\n", __func__, i);
@@ -1534,7 +1548,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 		return -EINVAL;
 	}
 	/** request gpios */
-	for(i=0; i<8; i++) {
+	for(i=0; i<ESPI_SCS_NUM; i++) {
 		ret = devm_gpio_request_one(&dev->dev, sb->gpio_scs[i], GPIOF_OUT_INIT_LOW, "gpio_scs");
 		if(ret) {
 			dev_err(&dev->dev, "%s: failed to request gpio: %d\n", __func__, sb->gpio_scs[i]);
