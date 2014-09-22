@@ -979,7 +979,7 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 }
 
 
-u8 debug_led_state[9] = { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
+u8 debug_led_state[9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // dtz: debug function
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
@@ -987,12 +987,12 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 i;
 	
-	if(debug_led_state[0] == 0xAA)
+	if(debug_led_state[0] == 0xFF)
 		for(i=0; i<9; i++)
-			debug_led_state[i] = 0x55;
+			debug_led_state[i] = 0x00;
 	else
 		for(i=0; i<9; i++)
-			debug_led_state[i] = 0xAA;
+			debug_led_state[i] = 0xFF;
 
 	xfer.tx_buf = debug_led_state;
 	xfer.rx_buf = NULL;
