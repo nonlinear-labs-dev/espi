@@ -1002,9 +1002,9 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
     
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
