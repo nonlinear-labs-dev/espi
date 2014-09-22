@@ -219,7 +219,6 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 	{
 		device = 3;
 		port = 8;				// disable all - select unused port
-		return;
 	} else {
 		gpio_set_value(spi->gpio_dmx, 0);	        // dmxs enable
 		return;
