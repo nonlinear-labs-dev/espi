@@ -217,6 +217,7 @@ static void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device
 		s = 3;
 	else if (device == 0)                           // device 0: all off
 	{
+		s = 0;
 		device = 3;
 		port = 8;				// disable all - select unused port
 	} else {
