@@ -1502,7 +1502,7 @@ static void espi_driver_poll(struct delayed_work *p)
     
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
 	espi_driver_leds_poll_force_write((struct espi_driver *)p);
-//espi_driver_pollbuttons((struct espi_driver *)p);
+espi_driver_pollbuttons((struct espi_driver *)p);
 
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
