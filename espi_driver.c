@@ -1400,7 +1400,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx;
-	xfer.len = 3;//BUTTON_BYTES_GENERAL_PANELS;
+	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
