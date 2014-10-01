@@ -980,12 +980,13 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 
 u8 debug_led_state[RIBBON_LED_STATES_SIZE] = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3,
 						0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3};
-u8 debug_ribbon[2] = {0x6, 0x0};
+u8 debug_ribbon[12] = {	0x6, 0x0, 0x8, 0x1, 0xA, 0x2, 0xC, 0x3,
+			0xE, 0x0, 0x10, 0x1, 0x12, 0x2, 0x14, 0x3};
 
 // dtz: debug function
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 {
-	static u8 led_brightness = 0;
+	static u8 led_brightness[3] = {0,1,2};
 	struct spi_transfer xfer;
 	u8 i;
 /*	
@@ -996,11 +997,13 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
 			debug_led_state[i] = 0xC3;
 */
-debug_ribbon[1] = led_brightness;
-if(led_brightness++ == 3)
-	led_brightness = 0;
+for(i=0; i<3; i++){
+debug_ribbon[2*i+1] = debug_ribbon[2*i+9] = led_brightness[i];
+if(led_brightness[i]++ == 3)
+	led_brightness[i] = 0;
+}
 	
-rbled_write(NULL, debug_ribbon, 2, 0);
+rbled_write(NULL, debug_ribbon, 12, 0);
 
 	xfer.tx_buf = rb_led_new_st;//debug_led_state;
 	xfer.rx_buf = NULL;
