@@ -1156,7 +1156,7 @@ u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
 static void espi_driver_leds_poll_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
-	u8 i=0;
+	u8 i=0x80;
 /*	
 	if(debug_sel_led_state[0] == 0xFF)
 		for(i=0; i<LED_STATES_SIZE; i++)
@@ -1167,7 +1167,7 @@ static void espi_driver_leds_poll_force_write(struct espi_driver *p)
 */
 led_fops_write(NULL, &i, 1, 0);
 i++;
-if(i > 24) i=0;
+if(i > (0x80+24)) i=0x80;
 
 	xfer.tx_buf = led_new_st;//debug_sel_led_state;
 	xfer.rx_buf = NULL;
