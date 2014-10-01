@@ -998,9 +998,9 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 			debug_led_state[i] = 0xC3;
 */
 for(i=0; i<3; i++){
-debug_ribbon[2*i+1] = debug_ribbon[2*i+9] = led_brightness[i];
+debug_ribbon[2*i+1] = debug_ribbon[4*i+2] = led_brightness[i];
 if(led_brightness[i]++ == 3)
-	led_brightness[i] = 0;
+	led_brightness[i] = 1;
 }
 	
 rbled_write(NULL, debug_ribbon, 12, 0);
