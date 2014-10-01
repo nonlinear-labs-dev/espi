@@ -1002,7 +1002,7 @@ if(led_brightness++ == 3)
 	
 rbled_write(NULL, debug_ribbon, 2, 0);
 
-	xfer.tx_buf = rb_led_st;//debug_led_state;
+	xfer.tx_buf = rb_led_new_st;//debug_led_state;
 	xfer.rx_buf = NULL;
 	xfer.len = RIBBON_LED_STATES_SIZE;
 	xfer.bits_per_word = 8;
