@@ -1445,6 +1445,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	for(i=0; i < BUTTON_STATES_SIZE; i++) {
 		xor = (btn_sm1[i] & rx[i] & (~btn_st[i])) | (~(btn_sm1[i] | rx[i]) & btn_st[i]);
 		if(xor){
+			printk("xor %d: %x\n",i,rx[i]);
 			for(j=0; j < 8; j++){
 				bit = xor & (1<<j);
 				if(bit & btn_st[i])	// change 1->0
@@ -1497,11 +1498,11 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(250));
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
     	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-	espi_driver_leds_poll_force_write((struct espi_driver *)p);
+	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
 espi_driver_pollbuttons((struct espi_driver *)p);
 
 #if 0
