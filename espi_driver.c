@@ -122,7 +122,7 @@ static DEFINE_MUTEX(led_state_lock);
 
 /* RIBBON LEDs stuff **********************************************************/
 #define ESPI_RIBBON_LED_DEV_MAJOR	303
-#define RIBBON_LED_STATES_SIZE		9
+#define RIBBON_LED_STATES_SIZE		17
 static u8 *rb_led_st;
 static u8 *rb_led_new_st;
 
@@ -979,7 +979,8 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 }
 
 
-u8 debug_led_state[9] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+u8 debug_led_state[RIBBON_LED_STATES_SIZE] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+						0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // dtz: debug function
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
@@ -988,10 +989,10 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	u8 i;
 	
 	if(debug_led_state[0] == 0xFF)
-		for(i=0; i<9; i++)
+		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
 			debug_led_state[i] = 0x00;
 	else
-		for(i=0; i<9; i++)
+		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
 			debug_led_state[i] = 0xFF;
 
 	xfer.tx_buf = debug_led_state;
