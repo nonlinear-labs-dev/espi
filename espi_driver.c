@@ -990,7 +990,7 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	
 	if(debug_led_state[0] == 0xCC)
 		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
-			debug_led_state[i] = 0x66;
+			debug_led_state[i] = 0x33;
 	else
 		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
 			debug_led_state[i] = 0xCC;
