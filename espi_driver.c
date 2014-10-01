@@ -1491,7 +1491,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 1 // daniels scheduler
+#if 0 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(250));
@@ -1516,7 +1516,7 @@ static void espi_driver_poll(struct delayed_work *p)
 #endif
 
 
-#if 0 // nemanjas original scheduler
+#if 1 // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1528,14 +1528,12 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 4:
 	case 6:
 		espi_driver_pollbuttons((struct espi_driver *)p);
-		espi_driver_adc_poll((struct espi_driver *)p);
 		espi_driver_encoder_poll((struct espi_driver *)p);
 		break;
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
 		espi_driver_rb_leds_poll((struct espi_driver *)p);
-		espi_driver_attenuator_poll((struct espi_driver *)p);
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
