@@ -1458,7 +1458,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 					btn_buff_head = (btn_buff_head+1)%BUTTON_BUFFER_SIZE;
 					wake_up_interruptible(&btn_wqueue);
 				}
-				//printk("button-change = %x\n", btn_id);
+				printk("button-change = %x\n", btn_id);
 			}	
 		}
 		btn_sm1[i] = rx[i];
@@ -1494,12 +1494,12 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(250));
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
     	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
-	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-	espi_driver_leds_poll_force_write((struct espi_driver *)p);
-
+	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
+espi_driver_poll_buttons((struct espi_driver *)p);
 
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
