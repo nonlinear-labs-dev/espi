@@ -1491,7 +1491,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 0 // daniels scheduler
+#if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(250));
@@ -1516,7 +1516,7 @@ static void espi_driver_poll(struct delayed_work *p)
 #endif
 
 
-#if 1 // nemanjas original scheduler
+#if 0 // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
