@@ -1150,26 +1150,29 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
 
-u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0};
 
 // dtz: debug function
 static void espi_driver_leds_poll_force_write(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	static u8 i=0x80;
-/*	
-	if(debug_sel_led_state[0] == 0xFF)
+	
+	if(debug_sel_led_state[0] == 0xF0)
 		for(i=0; i<LED_STATES_SIZE; i++)
 			debug_sel_led_state[i] = 0x00;
 	else
 		for(i=0; i<LED_STATES_SIZE; i++)
-			debug_sel_led_state[i] = 0xFF;
-*/
+			debug_sel_led_state[i] = 0xF0;
+
+#if 0
 led_fops_write(NULL, &i, 1, 0);
 i++;
 if(i > (0x80+24)) i=0x80;
 
 	xfer.tx_buf = led_new_st;//debug_sel_led_state;
+#endif
+	xfer.tx_buf = debug_sel_led_state;
 	xfer.rx_buf = NULL;
 	xfer.len = LED_STATES_SIZE;
 	xfer.bits_per_word = 8;
