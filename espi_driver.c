@@ -1165,7 +1165,7 @@ static void espi_driver_leds_poll_force_write(struct espi_driver *p)
 		for(i=0; i<LED_STATES_SIZE; i++)
 			debug_sel_led_state[i] = 0xFF;
 */
-led_fops_write(NULL, &i++, 1, 0);
+led_fops_write(NULL, &(i++), 1, 0);
 if(i > 24) i=0;
 
 	xfer.tx_buf = led_new_st;//debug_sel_led_state;
