@@ -1443,7 +1443,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 
 	/** check read states */
 	for(i=0; i < BUTTON_STATES_SIZE; i++) {
-	printk("checking read btn %d...\n", i);
+	if(btn_sm1[i] ^ rx[i])
+		printk("XOR: %d: %x\n",i,rx[i]);
 		xor = (btn_sm1[i] & rx[i] & (~btn_st[i])) | (~(btn_sm1[i] | rx[i]) & btn_st[i]);
 		if(xor){
 			printk("xor %d: %x\n",i,rx[i]);
