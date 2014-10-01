@@ -868,7 +868,7 @@ static ssize_t rbled_write( struct file *filp,
 	u8 val, led_id;
 	u8 rot[] = {0,2,1,3};
 
-	for(i=0; (i+1) < count; i++) {
+	for(i=0; (i+1) < count; i+=2) {
 		led_id = buf[i];
 		val = rot[buf[i+1] & 0x3];
 
