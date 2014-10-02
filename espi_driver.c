@@ -980,8 +980,10 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 
 u8 debug_led_state[RIBBON_LED_STATES_SIZE] = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3,
 						0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3};
-u8 debug_ribbon[12] = {	0x6, 0x1, 0x8, 0x2, 0xA, 0x3, 0xC, 0x1,
+u8 debug_ribbon[12] = 0x0, 0x3, 0x8, 0x2, 0xA, 0x3, 0xC, 0x1,
 			0xE, 0x2, 0x10, 0x3};
+			/*{	0x6, 0x1, 0x8, 0x2, 0xA, 0x3, 0xC, 0x1,
+			0xE, 0x2, 0x10, 0x3};*/
 
 // dtz: debug function
 static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
@@ -1005,8 +1007,16 @@ if(led_brightness[i]++ == 3)
 	led_brightness[i] = 1;
 }
 */
-	
-rbled_write(NULL, debug_ribbon, 12, 0);
+for(i=0; i<10; i++) {
+debug_ribbon[0] = 2*i+1;
+debug_ribbon[1] = 3;	
+rbled_write(NULL, debug_ribbon, 2, 0);
+}
+for(i=0; i<20; i++) {
+debug_ribbon[0] = 2*i;
+debug_ribbon[1] = 3;	
+rbled_write(NULL, debug_ribbon, 2, 0);
+}
 
 	xfer.tx_buf = rb_led_new_st;//debug_led_state;
 	xfer.rx_buf = NULL;
@@ -1443,8 +1453,6 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 
 	/** check read states */
 	for(i=0; i < BUTTON_STATES_SIZE; i++) {
-	if(btn_sm1[i] ^ rx[i])
-		printk("XOR: %d: %x\n",i,rx[i]);
 		xor = (btn_sm1[i] & rx[i] & (~btn_st[i])) | (~(btn_sm1[i] | rx[i]) & btn_st[i]);
 		if(xor){
 			printk("xor %d: %x\n",i,rx[i]);
@@ -1497,7 +1505,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 1 // daniels scheduler
+#if 0 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1522,7 +1530,7 @@ espi_driver_pollbuttons((struct espi_driver *)p);
 #endif
 
 
-#if 0 // nemanjas original scheduler
+#if 1 // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1539,7 +1547,8 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
-		espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
+		//espi_driver_rb_leds_poll((struct espi_driver *)p);
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
