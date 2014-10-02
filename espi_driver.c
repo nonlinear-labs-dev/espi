@@ -1426,7 +1426,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
-#if 0
+
 	/** read central (big oled) panel */
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
@@ -1446,8 +1446,8 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
- #endif     
-      /***** MASKING ******/
+      
+      	/***** MASKING ******/
 	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
 	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
 
@@ -1455,7 +1455,6 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	for(i=0; i < BUTTON_STATES_SIZE; i++) {
 		xor = (btn_sm1[i] & rx[i] & (~btn_st[i])) | (~(btn_sm1[i] | rx[i]) & btn_st[i]);
 		if(xor){
-			printk("xor %d: %x\n",i,rx[i]);
 			for(j=0; j < 8; j++){
 				bit = xor & (1<<j);
 				if(bit & btn_st[i])	// change 1->0
@@ -1547,8 +1546,7 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
-		espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-		//espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll((struct espi_driver *)p);
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
