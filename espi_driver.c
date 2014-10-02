@@ -413,7 +413,7 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 		    !(encoder_delta + (s8)rx_buff[2] < -128)) {
 			encoder_delta += (s8) rx_buff[2];
 
-			//printk("encoder delta: %d\n", (s8)encoder_delta);
+			printk("encoder delta: %d\n", (s8)encoder_delta);
 			wake_up_interruptible(&encoder_wqueue);
 		}
 	}
