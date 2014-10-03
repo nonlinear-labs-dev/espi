@@ -409,6 +409,7 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 	
 	if(rx_buff[2] != 0 ) {
+	printk("rx encoder %d\n",(s8)rx_buff[2]);
 		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
 		    !(encoder_delta + (s8)rx_buff[2] < -128)) {
 			encoder_delta += (s8) rx_buff[2];
