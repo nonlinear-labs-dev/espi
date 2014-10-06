@@ -1491,7 +1491,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 0 // daniels scheduler
+#if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(70));
@@ -1518,7 +1518,7 @@ espi_driver_ssd1322_poll((struct espi_driver *)p);
 #endif
 
 
-#if 1 // nemanjas original scheduler
+#if 0 // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1614,6 +1614,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	
 	
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
+	espi_driver_set_mode(sb, SPI_MODE_0);
 
 	sb->poll_stage = 0;
 	espi_driver_buttons_setup(sb);
