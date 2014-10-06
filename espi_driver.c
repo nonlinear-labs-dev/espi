@@ -624,8 +624,8 @@ static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
-const uint8_t bdw = 5, bdh = 5;
-uint8_t boled_debug[4+2*bdw*bdh];
+static const uint8_t bdw = 5, bdh = 5;
+static uint8_t boled_debug[54];
 #if 1
 static void espi_driver_poll_boled_force_write(struct espi_driver *p)
 {
