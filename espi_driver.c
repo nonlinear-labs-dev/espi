@@ -155,7 +155,7 @@ static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 
 /* SSD1322 stuff **************************************************************/
 #define ESPI_SSD1322_DEV_MAJOR		305
-#define ESPI_SSD1322_SPEED		10000000
+#define ESPI_SSD1322_SPEED		5000000
 
 #define SSD1322_SET_CMD_LOCK		0xFD
 #define SSD1322_SET_DISP_OFF		0xAE
