@@ -630,7 +630,7 @@ uint8_t boled_debug[4+2*bdw*bdh];
 static void espi_driver_poll_boled_force_write(struct espi_driver *p)
 {
 	uint8_t i;
-	bd_len = 4+2*bdw*bdh;
+	uint32_t bd_len = 4+2*bdw*bdh;
 	boled_debug[0] = boled_debug[1]=5;
 	boled_debug[2] = boled_debug[3] = 5;
 	for(i=4;i<bd_len;i++)
