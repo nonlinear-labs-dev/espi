@@ -624,12 +624,18 @@ static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
-#if 0 //????
+uint8_t bdw, bdh;
+uint8_t boled_debug[4+2*bdw*bdh];
+#if 1
 static void espi_driver_poll_boled_force_write(struct espi_driver *p)
 {
-	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 2);
-	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
-	espi_driver_scs_select(p, ESPI_LARGE_DISPLAY_PORT, 0);
+	uint8_t i;
+	bd_len = 4+2*bdw*bdh;
+	boled_debug[0] = boled_debug[1]=5;
+	boled_debug[2] = boled_debug[3] = 5;
+	for(i=4;i<bd_len;i++)
+		boled_debug[i] = 0xF0;
+	ssd1322_write(NULL, boled_debug, bd_len, NULL);
 }
 #endif
 
@@ -803,25 +809,6 @@ static s32 espi_driver_ssd1305_cleanup(struct espi_driver *sb)
 	
 	return 0;
 }
-
-#if 0
-static void espi_driver_poll_soled_force_write(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-
-	xfer.tx_buf = ssd1305_buff;
-	xfer.rx_buf = NULL;
-	xfer.len = SSD1305_BUFF_SIZE;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-	
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SMALL_DISPLAY_PORT, 0);
-}
-#endif
 
 static void espi_driver_ssd1305_poll(struct espi_driver *p)
 {
@@ -1504,7 +1491,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 0 // daniels scheduler
+#if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1512,8 +1499,9 @@ static void espi_driver_poll(struct delayed_work *p)
     
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
 	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
-espi_driver_pollbuttons((struct espi_driver *)p);
-
+//espi_driver_pollbuttons((struct espi_driver *)p);
+espi_driver_poll_boled_force_write((struct espi_driver *)p);
+espi_driver_ssd1322_poll((struct espi_driver *)p);
 #if 0
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
     espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
@@ -1529,7 +1517,7 @@ espi_driver_pollbuttons((struct espi_driver *)p);
 #endif
 
 
-#if 1 // nemanjas original scheduler
+#if 0 // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
