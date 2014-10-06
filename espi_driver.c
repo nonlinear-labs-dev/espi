@@ -1500,6 +1500,7 @@ static void espi_driver_poll(struct delayed_work *p)
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
 	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
 //espi_driver_pollbuttons((struct espi_driver *)p);
+espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
 espi_driver_poll_boled_force_write((struct espi_driver *)p);
 espi_driver_ssd1322_poll((struct espi_driver *)p);
 #if 0
