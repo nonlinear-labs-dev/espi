@@ -1494,7 +1494,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(25));
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(70));
     	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
