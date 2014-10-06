@@ -1616,7 +1616,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_buttons_setup(sb);
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
-	espi_driver_ssd1305_setup(sb);
+	//espi_driver_ssd1305_setup(sb);
 	espi_driver_ssd1322_setup(sb);
 	espi_driver_encoder_setup(sb);
 
