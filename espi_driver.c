@@ -155,7 +155,7 @@ static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 
 /* SSD1322 stuff **************************************************************/
 #define ESPI_SSD1322_DEV_MAJOR		305
-#define ESPI_SSD1322_SPEED		1000000
+#define ESPI_SSD1322_SPEED		5000000
 
 #define SSD1322_SET_CMD_LOCK		0xFD
 #define SSD1322_SET_DISP_OFF		0xAE
@@ -1494,7 +1494,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 #if 1 // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
-	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
+	queue_delayed_work(workqueue, p, msecs_to_jiffies(25));
     	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
     
 	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
