@@ -1568,19 +1568,19 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 2:
 	case 4:
 	case 6:
-		//espi_driver_pollbuttons((struct espi_driver *)p);
-		//espi_driver_encoder_poll((struct espi_driver *)p);
+		espi_driver_pollbuttons((struct espi_driver *)p);
+		espi_driver_encoder_poll((struct espi_driver *)p);
 		break;
 	case 1:
 	case 5:
-		//espi_driver_leds_poll((struct espi_driver *)p);
-		//espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll((struct espi_driver *)p);
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
 		break;
 	case 7:
-		//espi_driver_ssd1322_poll((struct espi_driver *)p);
+		espi_driver_ssd1322_poll((struct espi_driver *)p);
 		break;
 	}
 
@@ -1660,7 +1660,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_ssd1305_setup(sb);
-	//espi_driver_ssd1322_setup(sb);
+	espi_driver_ssd1322_setup(sb);
 	espi_driver_encoder_setup(sb);
 
 	INIT_DELAYED_WORK(&(sb->work), espi_driver_poll);
