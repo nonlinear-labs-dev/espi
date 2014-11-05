@@ -764,7 +764,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 #endif
 #if 1
 ssd1305_buff[i++] = (0xAE);	// display off
-ssd1305_buff[i++] = (0x0f);	// set low column
+ssd1305_buff[i++] = (0x00);	// set low column
 ssd1305_buff[i++] = (0x10);	// set high column
 ssd1305_buff[i++] = (0x40);	// set display start line
 ssd1305_buff[i++] = (0x2E);	// stop scrolling
