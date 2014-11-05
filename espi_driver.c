@@ -731,11 +731,42 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	
 	/** DISPLAY INITIALIZATION *************/
 	i = 0;
+#if 0
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
 	ssd1305_buff[i++] = SSD1305_SET_COL_ADDR;
 	ssd1305_buff[i++] = 0;
+	ssd1305_buff[i++] = 131;
+	ssd1305_buff[i++] = SSD1305_SET_AREA_COLOR;
+	ssd1305_buff[i++] = 0x05;
+	ssd1305_buff[i++] = SSD1305_SET_SEG_REMAP1;
+	ssd1305_buff[i++] = SSD1305_SET_SCAN_NOR;
+	ssd1305_buff[i++] = SSD1305_SET_OFFSET;
+	ssd1305_buff[i++] = 0x20;
+	ssd1305_buff[i++] = SSD1305_SET_CONTRAST;
+	ssd1305_buff[i++] = 0xFF;
+	ssd1305_buff[i++] = SSD1305_SET_CHARGE;
+	ssd1305_buff[i++] = 0x82;
+	ssd1305_buff[i++] = SSD1305_SET_VCOM;
+	ssd1305_buff[i++] = 0x3C;
+	ssd1305_buff[i++] = SSD1305_EON_OFF;
+	ssd1305_buff[i++] = SSD1305_DISP_NOR;
+	ssd1305_buff[i++] = SSD1305_MEM_ADDRESSING;
+	ssd1305_buff[i++] = 0x00;	// Horizontal Addressing mode
+	ssd1305_buff[i++] = SSD1305_DISP_ON;
+	ssd1305_buff[i++] = SSD1305_SET_PAGE;
+	ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
+	ssd1305_buff[i++] = 0x00;
+	ssd1305_buff[i++] = 0x03;
+	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
+	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
+#endif
+	ssd1305_buff[i++] = SSD1305_DISP_OFF;
+	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
+	ssd1305_buff[i++] = 0xA0;
+	ssd1305_buff[i++] = SSD1305_SET_COL_ADDR;
+	ssd1305_buff[i++] = 20;
 	ssd1305_buff[i++] = 131;
 	ssd1305_buff[i++] = SSD1305_SET_AREA_COLOR;
 	ssd1305_buff[i++] = 0x05;
