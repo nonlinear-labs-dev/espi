@@ -732,6 +732,25 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	/** DISPLAY INITIALIZATION *************/
 	i = 0;
 #if 0
+
+#define SSD1305_DISP_OFF		0xAE
+#define SSD1305_DISP_ON			0xAF
+#define SSD1305_SET_RATIO_OSC	0xD5
+#define SSD1305_SET_COL_ADDR	0x21
+#define SSD1305_SET_AREA_COLOR	0xD8
+#define SSD1305_SET_SEG_REMAP1	0xA1
+#define SSD1305_SET_SCAN_NOR	0xC8
+#define SSD1305_SET_OFFSET		0xD3
+#define SSD1305_SET_CONTRAST	0x81
+#define SSD1305_SET_CHARGE  	0xD9
+#define SSD1305_SET_VCOM    	0xDB
+#define SSD1305_EON_OFF			0xA4
+#define SSD1305_DISP_NOR		0xA6
+#define SSD1305_MEM_ADDRESSING 	0x20
+#define SSD1305_SET_PAGE		0xB0
+#define SSD1305_SET_COL_HI		0x10
+#define SSD1305_SET_COL_LO		0x00
+#define SSD1305_SET_PAGE_ADDR	0x22
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
@@ -762,6 +781,14 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
+# if 0
+	ssd1305_buff[i++] = 0xAE; //disp off
+	ssd1305_buff[i++] = 0x00; //col low
+	ssd1305_buff[i++] = 0x10; //col hi
+	ssd1305_buff[i++] = 0x40; //set disp start line
+	ssd1305_buff[i++] = 0x2E; //deact scroll
+	ssd1305_buff[i++] = 
+#endif
 #if 1
 ssd1305_buff[i++] = (0xAE);	// display off
 ssd1305_buff[i++] = (0x00);	// set low column
@@ -773,7 +800,7 @@ ssd1305_buff[i++] = (0xB1);	// ?
 ssd1305_buff[i++] = (0xBF);	// ?
 ssd1305_buff[i++] = (0x81);	// set contrast control
 ssd1305_buff[i++] = (0xBF);
-ssd1305_buff[i++] = (0xA0);	// set segment remap
+ssd1305_buff[i++] = (0xA1);	// set segment remap
 ssd1305_buff[i++] = (0xA4);	// entire display on
 ssd1305_buff[i++] = (0xAF);	// dtz: entire display on
 ssd1305_buff[i++] = (0xA6);	// set normal
