@@ -1654,6 +1654,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	//espi_driver_set_mode(sb, SPI_MODE_0);
+	espi_driver_set_mode(sb, SPI_MODE_3);
 
 	sb->poll_stage = 0;
 	espi_driver_buttons_setup(sb);
