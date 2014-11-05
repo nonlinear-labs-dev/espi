@@ -826,6 +826,7 @@ ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
+ssd1305_buff[i++] = (0xB0);
 #endif	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
