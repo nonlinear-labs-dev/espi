@@ -731,7 +731,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	
 	/** DISPLAY INITIALIZATION *************/
 	i = 0;
-#if 0
+#if 1
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
@@ -762,6 +762,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
+#if 0
 ssd1305_buff[i++] = (0xAE);	// display off
 ssd1305_buff[i++] = (0x00);	// set low column
 ssd1305_buff[i++] = (0x10);	// set high column
@@ -798,7 +799,7 @@ ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
-	
+#endif	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
 	xfer.len = i;
@@ -1567,19 +1568,19 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 2:
 	case 4:
 	case 6:
-		espi_driver_pollbuttons((struct espi_driver *)p);
-		espi_driver_encoder_poll((struct espi_driver *)p);
+		//espi_driver_pollbuttons((struct espi_driver *)p);
+		//espi_driver_encoder_poll((struct espi_driver *)p);
 		break;
 	case 1:
 	case 5:
-		espi_driver_leds_poll((struct espi_driver *)p);
-		espi_driver_rb_leds_poll((struct espi_driver *)p);
+		//espi_driver_leds_poll((struct espi_driver *)p);
+		//espi_driver_rb_leds_poll((struct espi_driver *)p);
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
 		break;
 	case 7:
-		espi_driver_ssd1322_poll((struct espi_driver *)p);
+		//espi_driver_ssd1322_poll((struct espi_driver *)p);
 		break;
 	}
 
