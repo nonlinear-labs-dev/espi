@@ -827,6 +827,9 @@ ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0x3F);
 ssd1305_buff[i++] = (0xB0);
+ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
+	ssd1305_buff[i++] = 0x00;
+	ssd1305_buff[i++] = 0x03;
 #endif	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
