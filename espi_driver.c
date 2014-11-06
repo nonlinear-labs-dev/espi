@@ -783,7 +783,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
-#if 1
+#if 0
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
@@ -813,6 +813,44 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
+#if 1
+ssd1305_buff[i++] = (0xAE);	// display off
+ssd1305_buff[i++] = (0x00);	// set low column
+ssd1305_buff[i++] = (0x10);	// set high column
+ssd1305_buff[i++] = (0x40);	// set display start line
+ssd1305_buff[i++] = (0x2E);	// stop scrolling
+ssd1305_buff[i++] = (0xB0);	// ?
+ssd1305_buff[i++] = (0xB1);	// ?
+ssd1305_buff[i++] = (0xBF);	// ?
+ssd1305_buff[i++] = (0x81);	// set contrast control
+ssd1305_buff[i++] = (0xBF);
+ssd1305_buff[i++] = (0xA0);	// set segment remap
+ssd1305_buff[i++] = (0xA4);	// entire display on
+ssd1305_buff[i++] = (0xAF);	// dtz: entire display on
+ssd1305_buff[i++] = (0xA6);	// set normal
+ssd1305_buff[i++] = (0xA8);	// set multiplex ratio
+ssd1305_buff[i++] = (0x1F);	// set high column
+ssd1305_buff[i++] = (0xD3);	// set display offset
+ssd1305_buff[i++] = (0x00);
+ssd1305_buff[i++] = (0xAD);	// master config
+ssd1305_buff[i++] = (0x8E);	
+ssd1305_buff[i++] = (0xC8);	// set COM output scan direction	
+ssd1305_buff[i++] = (0xD5);	// set display clock
+ssd1305_buff[i++] = (0x10);	
+ssd1305_buff[i++] = (0xD8);	// set area color mode
+ssd1305_buff[i++] = (0x05);
+ssd1305_buff[i++] = (0xD9);	// set pre-charged period
+ssd1305_buff[i++] = (0xD2);	
+ssd1305_buff[i++] = (0xDA);	// set com pins
+ssd1305_buff[i++] = (0x12);	
+ssd1305_buff[i++] = (0xDB);	// set V_COM deselect level
+ssd1305_buff[i++] = (0x08);	
+ssd1305_buff[i++] = (0x91);	// set look up
+ssd1305_buff[i++] = (0x3F);
+ssd1305_buff[i++] = (0x3F);
+ssd1305_buff[i++] = (0x3F);
+ssd1305_buff[i++] = (0x3F);
+#endif
 	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
@@ -827,7 +865,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
 	
-#if 1
+#if 0
 	msleep(100);
 	i = 0;
 	ssd1305_buff[i++] = SSD1305_DISP_ON;
