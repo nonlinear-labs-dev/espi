@@ -783,7 +783,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
-#if 0
+#if 1
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
@@ -813,7 +813,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
-#if 1
+#if 0
 ssd1305_buff[i++] = (0xAE);	// display off
 ssd1305_buff[i++] = (0x00);	// set low column
 ssd1305_buff[i++] = (0x10);	// set high column
@@ -865,7 +865,7 @@ ssd1305_buff[i++] = (0x3F);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
 	
-#if 0
+#if 1
 	msleep(100);
 	i = 0;
 	ssd1305_buff[i++] = SSD1305_DISP_ON;
