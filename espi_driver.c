@@ -789,9 +789,29 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = 0x10; //col hi
 	ssd1305_buff[i++] = 0x40; //set disp start line
 	ssd1305_buff[i++] = 0x2E; //deact scroll
-	ssd1305_buff[i++] = 
+	ssd1305_buff[i++] = 0x81; //set contrast
+	ssd1305_buff[i++] = 0xBF;
+	ssd1305_buff[i++] = 0xA1; //set seg remap
+	ssd1305_buff[i++] = 0xA4; //entire display off
+	ssd1305_buff[i++] = 0xAF; //disp on normal mode
+	ssd1305_buff[i++] = 0xA6; //set normal display
+	ssd1305_buff[i++] = 0xA8; //set mux ratio
+	ssd1305_buff[i++] = 0x3F;
+	ssd1305_buff[i++] = 0xD3; //set offset
+	ssd1305_buff[i++] = 0x20;
+	ssd1305_buff[i++] = 0xAD; //set master config
+	ssd1305_buff[i++] = 0x8E;
+	ssd1305_buff[i++] = 0xC8; // set output scan normal
+	ssd1305_buff[i++] = 0xD5; //set disp clock
+	ssd1305_buff[i++] = 0x10;
+	ssd1305_buff[i++] = 0xD8; //set area color mode
+	ssd1305_buff[i++] = 0x05;
+	ssd1305_buff[i++] = 0xD9; //set precharged period
+	ssd1305_buff[i++] = 0xD2;
+	ssd1305_buff[i++] = 0xDA; // set com pins
+	
 #endif
-#if 1
+#if 0
 ssd1305_buff[i++] = (0xAE);	// display off
 ssd1305_buff[i++] = (0x00);	// set low column
 ssd1305_buff[i++] = (0x10);	// set high column
@@ -807,7 +827,7 @@ ssd1305_buff[i++] = (0xA4);	// entire display on
 ssd1305_buff[i++] = (0xAF);	// dtz: entire display on
 ssd1305_buff[i++] = (0xA6);	// set normal
 ssd1305_buff[i++] = (0xA8);	// set multiplex ratio
-//ssd1305_buff[i++] = (0x1F);	// set high column
+ssd1305_buff[i++] = (0x1F);	// set high column
 ssd1305_buff[i++] = (0xD3);	// set display offset
 ssd1305_buff[i++] = (0x00);
 ssd1305_buff[i++] = (0xAD);	// master config
@@ -832,6 +852,76 @@ ssd1305_buff[i++] = (0xB0);
 ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
 	ssd1305_buff[i++] = 0x00;
 	ssd1305_buff[i++] = 0x03;
+#endif
+#if 1
+ssd1305_buff[i++] = 0xAE;	// display off
+
+ssd1305_buff[i++] = 0x00;	// set low column
+
+ssd1305_buff[i++] = 0x10;	// set high column
+
+ssd1305_buff[i++] = 0x21; // SSD1305_SET_COL_ADDR;
+ssd1305_buff[i++] = 0;
+ssd1305_buff[i++] = 131;
+
+ssd1305_buff[i++] = 0x40;	// set display start line
+
+ssd1305_buff[i++] = 0x2E;	// stop scrolling
+
+ssd1305_buff[i++] = 0xB0;	// ? Set GDDRAM Page Start Address
+ssd1305_buff[i++] = 0xB1;	// ? Set GDDRAM Page Start Address
+ssd1305_buff[i++] = 0xBF;	// ? Set GDDRAM Page Start Address
+
+ssd1305_buff[i++] = 0x81;	// set contrast control
+ssd1305_buff[i++] = 0xBF;   // brightness
+
+ssd1305_buff[i++] = 0xA1;	// set segment remap: column address 131 is
+mapped to SEG0
+
+ssd1305_buff[i++] = 0xA4;	// entire display on -> Output ignores RAM content
+
+ssd1305_buff[i++] = 0xAF;	// Display ON in normal mode
+
+ssd1305_buff[i++] = 0xA6;	// Normal display (RESET) -> OFF in display panel
+
+ssd1305_buff[i++] = 0xA8;	// set multiplex ratio
+ssd1305_buff[i++] = 0x1F;	//
+
+ssd1305_buff[i++] = 0xD3;	// set display offset
+ssd1305_buff[i++] = 0x00;
+
+ssd1305_buff[i++] = 0xAD;	// master config
+ssd1305_buff[i++] = 0x8E;	
+
+ssd1305_buff[i++] = 0xC8;	// set COM output scan direction	
+
+ssd1305_buff[i++] = 0xD5;	// set display clock
+!!!!!!!!!!
+ssd1305_buff[i++] = 0x10;	
+
+ssd1305_buff[i++] = 0xD8;	// set area color mode
+ssd1305_buff[i++] = 0x05;
+
+ssd1305_buff[i++] = 0xD9;	// set pre-charged period
+ssd1305_buff[i++] = 0xD2;	
+
+ssd1305_buff[i++] = 0xDA;	// set com pins
+ssd1305_buff[i++] = 0x12;	
+
+ssd1305_buff[i++] = 0xDB;	// set V_COM deselect level
+ssd1305_buff[i++] = 0x08;	
+
+ssd1305_buff[i++] = 0x91;	// set look up
+ssd1305_buff[i++] = 0x3F;
+ssd1305_buff[i++] = 0x3F;
+ssd1305_buff[i++] = 0x3F;
+ssd1305_buff[i++] = 0x3F;
+
+ssd1305_buff[i++] = 0xB0; // set page start
+
+ssd1305_buff[i++] = 0x22; // set page address
+ssd1305_buff[i++] = 0x00;
+ssd1305_buff[i++] = 0x03;
 #endif	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
