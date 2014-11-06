@@ -774,23 +774,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	espi_driver_transfer(sb->spidev, &xfer);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
-#if 0	
-	msleep(100);
-	i = 0;
-	ssd1305_buff[i++] = SSD1305_DISP_ON;
-	xfer.tx_buf = ssd1305_buff;
-	xfer.rx_buf = NULL;
-	xfer.len = i;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-	
-	gpio_set_value(sb->gpio_sap, 0);
-	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
-	espi_driver_transfer(sb->spidev, &xfer);
-	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
-	gpio_set_value(sb->gpio_sap, 1);
-#endif
+
 	for(i=0; i<SSD1305_BUFF_SIZE; i++)
 		ssd1305_buff[i] = ssd1305_tmp_buff[i] = 0;
 		
