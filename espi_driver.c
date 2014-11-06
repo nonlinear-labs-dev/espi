@@ -783,7 +783,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
-# if 1
+# if 0
 	ssd1305_buff[i++] = 0xAE; //disp off
 	ssd1305_buff[i++] = 0x00; //col low
 	ssd1305_buff[i++] = 0x10; //col hi
