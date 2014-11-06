@@ -896,7 +896,6 @@ ssd1305_buff[i++] = 0x8E;
 ssd1305_buff[i++] = 0xC8;	// set COM output scan direction	
 
 ssd1305_buff[i++] = 0xD5;	// set display clock
-!!!!!!!!!!
 ssd1305_buff[i++] = 0x10;	
 
 ssd1305_buff[i++] = 0xD8;	// set area color mode
