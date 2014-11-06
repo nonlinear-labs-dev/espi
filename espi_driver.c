@@ -751,6 +751,8 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 #define SSD1305_SET_COL_HI		0x10
 #define SSD1305_SET_COL_LO		0x00
 #define SSD1305_SET_PAGE_ADDR	0x22
+#endif
+#if 1
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
