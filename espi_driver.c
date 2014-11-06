@@ -731,59 +731,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	
 	/** DISPLAY INITIALIZATION *************/
 	i = 0;
-#if 0
 
-#define SSD1305_DISP_OFF		0xAE
-#define SSD1305_DISP_ON			0xAF
-#define SSD1305_SET_RATIO_OSC	0xD5
-#define SSD1305_SET_COL_ADDR	0x21
-#define SSD1305_SET_AREA_COLOR	0xD8
-#define SSD1305_SET_SEG_REMAP1	0xA1
-#define SSD1305_SET_SCAN_NOR	0xC8
-#define SSD1305_SET_OFFSET		0xD3
-#define SSD1305_SET_CONTRAST	0x81
-#define SSD1305_SET_CHARGE  	0xD9
-#define SSD1305_SET_VCOM    	0xDB
-#define SSD1305_EON_OFF			0xA4
-#define SSD1305_DISP_NOR		0xA6
-#define SSD1305_MEM_ADDRESSING 	0x20
-#define SSD1305_SET_PAGE		0xB0
-#define SSD1305_SET_COL_HI		0x10
-#define SSD1305_SET_COL_LO		0x00
-#define SSD1305_SET_PAGE_ADDR	0x22
-#endif
-#if 0
-	ssd1305_buff[i++] = SSD1305_DISP_OFF;
-	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
-	ssd1305_buff[i++] = 0xA0;
-	ssd1305_buff[i++] = SSD1305_SET_COL_ADDR;
-	ssd1305_buff[i++] = 0;
-	ssd1305_buff[i++] = 131;
-	ssd1305_buff[i++] = SSD1305_SET_AREA_COLOR;
-	ssd1305_buff[i++] = 0x05;
-	ssd1305_buff[i++] = SSD1305_SET_SEG_REMAP1;
-	ssd1305_buff[i++] = SSD1305_SET_SCAN_NOR;
-	ssd1305_buff[i++] = SSD1305_SET_OFFSET;
-	ssd1305_buff[i++] = 0x20;
-	ssd1305_buff[i++] = SSD1305_SET_CONTRAST;
-	ssd1305_buff[i++] = 0xFF;
-	ssd1305_buff[i++] = SSD1305_SET_CHARGE;
-	ssd1305_buff[i++] = 0x82;
-	ssd1305_buff[i++] = SSD1305_SET_VCOM;
-	ssd1305_buff[i++] = 0x3C;
-	ssd1305_buff[i++] = SSD1305_EON_OFF;
-	ssd1305_buff[i++] = SSD1305_DISP_NOR;
-	ssd1305_buff[i++] = SSD1305_MEM_ADDRESSING;
-	ssd1305_buff[i++] = 0x00;	// Horizontal Addressing mode
-	ssd1305_buff[i++] = SSD1305_DISP_ON;
-	ssd1305_buff[i++] = SSD1305_SET_PAGE;
-	ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
-	ssd1305_buff[i++] = 0x00;
-	ssd1305_buff[i++] = 0x03;
-	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
-	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
-#endif
-#if 1
 	ssd1305_buff[i++] = SSD1305_DISP_OFF;
 	ssd1305_buff[i++] = SSD1305_SET_RATIO_OSC;
 	ssd1305_buff[i++] = 0xA0;
@@ -812,45 +760,6 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = 0x03;
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
-#endif
-#if 0
-ssd1305_buff[i++] = (0xAE);	// display off
-ssd1305_buff[i++] = (0x00);	// set low column
-ssd1305_buff[i++] = (0x10);	// set high column
-ssd1305_buff[i++] = (0x40);	// set display start line
-ssd1305_buff[i++] = (0x2E);	// stop scrolling
-ssd1305_buff[i++] = (0xB0);	// ?
-ssd1305_buff[i++] = (0xB1);	// ?
-ssd1305_buff[i++] = (0xBF);	// ?
-ssd1305_buff[i++] = (0x81);	// set contrast control
-ssd1305_buff[i++] = (0xBF);
-ssd1305_buff[i++] = (0xA0);	// set segment remap
-ssd1305_buff[i++] = (0xA4);	// entire display on
-ssd1305_buff[i++] = (0xAF);	// dtz: entire display on
-ssd1305_buff[i++] = (0xA6);	// set normal
-ssd1305_buff[i++] = (0xA8);	// set multiplex ratio
-ssd1305_buff[i++] = (0x1F);	// set high column
-ssd1305_buff[i++] = (0xD3);	// set display offset
-ssd1305_buff[i++] = (0x00);
-ssd1305_buff[i++] = (0xAD);	// master config
-ssd1305_buff[i++] = (0x8E);	
-ssd1305_buff[i++] = (0xC8);	// set COM output scan direction	
-ssd1305_buff[i++] = (0xD5);	// set display clock
-ssd1305_buff[i++] = (0x10);	
-ssd1305_buff[i++] = (0xD8);	// set area color mode
-ssd1305_buff[i++] = (0x05);
-ssd1305_buff[i++] = (0xD9);	// set pre-charged period
-ssd1305_buff[i++] = (0xD2);	
-ssd1305_buff[i++] = (0xDA);	// set com pins
-ssd1305_buff[i++] = (0x12);	
-ssd1305_buff[i++] = (0xDB);	// set V_COM deselect level
-ssd1305_buff[i++] = (0x08);	
-ssd1305_buff[i++] = (0x91);	// set look up
-ssd1305_buff[i++] = (0x3F);
-ssd1305_buff[i++] = (0x3F);
-ssd1305_buff[i++] = (0x3F);
-ssd1305_buff[i++] = (0x3F);
-#endif
 	
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
@@ -865,7 +774,6 @@ ssd1305_buff[i++] = (0x3F);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
 	
-#if 1
 	msleep(100);
 	i = 0;
 	ssd1305_buff[i++] = SSD1305_DISP_ON;
@@ -881,7 +789,6 @@ ssd1305_buff[i++] = (0x3F);
 	espi_driver_transfer(sb->spidev, &xfer);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
-#endif
 
 	for(i=0; i<SSD1305_BUFF_SIZE; i++)
 		ssd1305_buff[i] = ssd1305_tmp_buff[i] = 0;
