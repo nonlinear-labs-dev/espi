@@ -809,7 +809,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = 0xD9; //set precharged period
 	ssd1305_buff[i++] = 0xD2;
 	ssd1305_buff[i++] = 0xDA; // set com pins
-	
+	ssd1305_buff[i++] = 0x12;
 #endif
 #if 0
 ssd1305_buff[i++] = (0xAE);	// display off
@@ -926,7 +926,7 @@ ssd1305_buff[i++] = 0x03;
 	xfer.len = i;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = 500000;//ESPI_SPI_SPEED;
 	
 	gpio_set_value(sb->gpio_sap, 0);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
