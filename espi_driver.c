@@ -876,7 +876,6 @@ ssd1305_buff[i++] = 0x81;	// set contrast control
 ssd1305_buff[i++] = 0xBF;   // brightness
 
 ssd1305_buff[i++] = 0xA1;	// set segment remap: column address 131 is
-mapped to SEG0
 
 ssd1305_buff[i++] = 0xA4;	// entire display on -> Output ignores RAM content
 
