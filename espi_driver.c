@@ -783,7 +783,7 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 #endif
-# if 0
+# if 1
 	ssd1305_buff[i++] = 0xAE; //disp off
 	ssd1305_buff[i++] = 0x00; //col low
 	ssd1305_buff[i++] = 0x10; //col hi
@@ -810,6 +810,25 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	ssd1305_buff[i++] = 0xD2;
 	ssd1305_buff[i++] = 0xDA; // set com pins
 	ssd1305_buff[i++] = 0x12;
+	ssd1305_buff[i++] = 0xDB; // set vcom h
+	ssd1305_buff[i++] = 0x3C;
+	ssd1305_buff[i++] = (0x91);	// set look up
+	ssd1305_buff[i++] = (0x3F);
+	ssd1305_buff[i++] = (0x3F);
+	ssd1305_buff[i++] = (0x3F);
+	ssd1305_buff[i++] = (0x3F);
+	ssd1305_buff[i++] = SSD1305_SET_COL_ADDR;
+	ssd1305_buff[i++] = 0;
+	ssd1305_buff[i++] = 131;
+	ssd1305_buff[i++] = SSD1305_MEM_ADDRESSING;
+	ssd1305_buff[i++] = 0x00;	// Horizontal Addressing mode
+	ssd1305_buff[i++] = SSD1305_SET_PAGE;
+	ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
+	ssd1305_buff[i++] = 0x00;
+	ssd1305_buff[i++] = 0x03;
+	
+	ssd1305_buff[i++] = 0xA5;
+	ssd1305_buff[i++] = 0xA4;
 #endif
 #if 0
 ssd1305_buff[i++] = (0xAE);	// display off
@@ -853,7 +872,7 @@ ssd1305_buff[i++] = SSD1305_SET_PAGE_ADDR;
 	ssd1305_buff[i++] = 0x00;
 	ssd1305_buff[i++] = 0x03;
 #endif
-#if 1
+#if 0
 ssd1305_buff[i++] = 0xAE;	// display off
 
 ssd1305_buff[i++] = 0x00;	// set low column
@@ -926,7 +945,7 @@ ssd1305_buff[i++] = 0x03;
 	xfer.len = i;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = 500000;//ESPI_SPI_SPEED;
+	xfer.speed_hz = ESPI_SPI_SPEED;
 	
 	gpio_set_value(sb->gpio_sap, 0);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
