@@ -20,7 +20,11 @@
 #include <linux/hrtimer.h>
 #include <linux/hardirq.h>
 
-
+#ifdef ESPI_FUNCTION_TEST
+#define ESPI_BOLED_TEST
+#define ESPI_RIBBON_LED_TEST
+#define ESPI_LED_TEST
+#endif
 
 #if 0 // HW V.2 Rev.A
 #define ESPI_ATTENUATOR_PORT		2
@@ -48,27 +52,6 @@
 #define ESPI_PLAY_PANEL_PORT		3
 #define ESPI_PLAY_BUTTONS_DEVICE	1
 #define ESPI_PLAY_SOLED_DEVICE		2
-
-#endif
-
-
-
-#if 0 // container - move to hw v.2 rev.c - delete later
-
-#define ESPI_PORT_EDIT_PANEL                    0
-#define ESPI_PORT_SELECTION_PANELS              1
-
-#define ESPI_PORT_SPARE                         2      
-
-#define ESPI_DEVICE_EDIT_PANEL_BUTTONS          1
-#define ESPI_DEVICE_EDIT_PANEL_BOLED            2
-#define ESPI_DEVICE_EDIT_PANEL_ENCODER          3
-
-#define ESPI_DEVICE_SELECTION_PANELS_BUTTONS    1
-#define ESPI_DEVICE_SELECTION_PANELS_LEDS       2
-
-#define ESPI_DEVICE_TOP_COVER_BUTTONS           1
-#define ESPI_DEVICE_TOP_COVER_SOLED             3
 
 #endif
 
@@ -624,9 +607,10 @@ static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
+#ifdef ESPI_BOLED_TEST
 static const uint8_t bdw = 5, bdh = 5;
 static uint8_t boled_debug[54];
-#if 1
+
 static void espi_driver_poll_boled_force_write(struct espi_driver *p)
 {
 	uint8_t i;
@@ -965,7 +949,7 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
 
-
+#ifdef ESPI_RIBBON_LED_TEST
 u8 debug_led_state[RIBBON_LED_STATES_SIZE] = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3,
 						0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3};
 u8 debug_ribbon[12] = {0x0, 0x3, 0x8, 0x2, 0xA, 0x3, 0xC, 0x1,
@@ -979,32 +963,32 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	static u8 led_brightness[3] = {0,1,2};
 	struct spi_transfer xfer;
 	u8 i;
-/*	
-	if(debug_led_state[0] == 0xC3)
-		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
-			debug_led_state[i] = 0x3C;
-	else
-		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
-			debug_led_state[i] = 0xC3;
-*/
+	/*	
+		if(debug_led_state[0] == 0xC3)
+			for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
+				debug_led_state[i] = 0x3C;
+		else
+			for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
+				debug_led_state[i] = 0xC3;
+	*/
 
-/*
-for(i=0; i<3; i++){
-debug_ribbon[2*i+1] = debug_ribbon[2*i+7] = led_brightness[i];
-if(led_brightness[i]++ == 3)
-	led_brightness[i] = 1;
-}
-*/
-for(i=0; i<10; i++) {
-debug_ribbon[0] = 2*i+1;
-debug_ribbon[1] = 3;	
-rbled_write(NULL, debug_ribbon, 2, 0);
-}
-for(i=0; i<20; i++) {
-debug_ribbon[0] = 2*i;
-debug_ribbon[1] = 3;	
-rbled_write(NULL, debug_ribbon, 2, 0);
-}
+	/*
+	for(i=0; i<3; i++){
+	debug_ribbon[2*i+1] = debug_ribbon[2*i+7] = led_brightness[i];
+	if(led_brightness[i]++ == 3)
+		led_brightness[i] = 1;
+	}
+	*/
+	for(i=0; i<10; i++) {
+	debug_ribbon[0] = 2*i+1;
+	debug_ribbon[1] = 3;	
+	rbled_write(NULL, debug_ribbon, 2, 0);
+	}
+	for(i=0; i<20; i++) {
+	debug_ribbon[0] = 2*i;
+	debug_ribbon[1] = 3;	
+	rbled_write(NULL, debug_ribbon, 2, 0);
+	}
 
 	xfer.tx_buf = rb_led_new_st;//debug_led_state;
 	xfer.rx_buf = NULL;
@@ -1020,7 +1004,7 @@ rbled_write(NULL, debug_ribbon, 2, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
-
+#endif
 
 
 /*******************************************************************************
@@ -1148,6 +1132,7 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
 
+#ifdef ESPI_LED_TEST
 u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0};
 
 // dtz: debug function
@@ -1183,6 +1168,7 @@ if(i > (0x80+24)) i=0x80;
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
+#endif
 
 /*******************************************************************************
     buttons functions
@@ -1492,34 +1478,26 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 0 // daniels scheduler
+#ifdef ESPI_FUNCTION_TEST // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(70));
-    	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
-    
-	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
-//espi_driver_pollbuttons((struct espi_driver *)p);
-espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-espi_driver_poll_boled_force_write((struct espi_driver *)p);
-espi_driver_ssd1322_poll((struct espi_driver *)p);
-#if 0
+	
+#ifdef ESPI_RIBBON_LED_TEST    
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-    espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
-	espi_driver_leds_poll((struct espi_driver *)p);
-	espi_driver_poll_buttons_selection((struct espi_driver *)p);
-	espi_driver_poll_buttons_play((struct espi_driver *)p);
-	espi_driver_poll_buttons_edit((struct espi_driver *)p);
-    espi_driver_encoder_poll((struct espi_driver *)p);
 #endif
-
-	//((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
+#ifdef ESPI_LED_TEST
+	espi_driver_leds_poll_force_write((struct espi_driver *)p);
+#endif
+#ifdef ESPI_BOLED_TEST
+	espi_driver_poll_boled_force_write((struct espi_driver *)p);
+	espi_driver_ssd1322_poll((struct espi_driver *)p);
+#endif
 }
 #endif
 
 
-#if 1 // nemanjas original scheduler
+#else // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
