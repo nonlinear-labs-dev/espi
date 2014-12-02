@@ -1540,6 +1540,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	struct device_node *dn = dev->dev.of_node; //nni
 
 	printk("espi_driver_probe\n");
+	printk("version 02-12-2014\n");
 
 	sb = devm_kzalloc(&dev->dev,sizeof(struct espi_driver), GFP_KERNEL);
 	if (!sb) {
@@ -1660,9 +1661,9 @@ static s32 __init espi_driver_init( void )
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
     
-	//printk("Registration done. %s - %s \n", __DATE__, __TIME__);
+	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
     
-    printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
+    //printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
     
 
 	return ret;
