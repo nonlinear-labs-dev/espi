@@ -1459,7 +1459,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 					btn_buff_head = (btn_buff_head+1)%BUTTON_BUFFER_SIZE;
 					wake_up_interruptible(&btn_wqueue);
 				}
-				printk("button-change = %x\n", btn_id);
+				//printk("button-change = %x\n", btn_id);
 			}	
 		}
 		btn_sm1[i] = rx[i];
