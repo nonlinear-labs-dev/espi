@@ -1422,7 +1422,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
       
       	/***** MASKING ******/
-	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
+	//rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
 	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
 
 	/** check read states */
