@@ -1455,7 +1455,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 }
 
 
-
+#ifdef ESPI_FUNCTION_TEST 
 static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 {
     static u8 port_cnt   = 1;    
@@ -1473,7 +1473,7 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
     
     espi_driver_scs_select((struct espi_driver *)p, port_cnt + 1, device_cnt);  
 }
-
+#endif
 
 /*******************************************************************************
     SCHEDULER
@@ -1494,7 +1494,6 @@ static void espi_driver_poll(struct delayed_work *p)
 	espi_driver_ssd1322_poll((struct espi_driver *)p);
 #endif
 }
-#endif
 
 
 #else // nemanjas original scheduler
@@ -1604,7 +1603,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_ssd1322_setup(sb);
 	espi_driver_encoder_setup(sb);
 
-	INIT_DELAYED_WORK(&(sb->work), espi_driver_poll);
+	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
 
 	return ret;
