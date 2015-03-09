@@ -11,6 +11,7 @@
 #include <linux/of_gpio.h>  // nni: added for device tree
 #include <linux/delay.h>  // nni: added for msleep()
 #include <linux/platform_device.h>
+#include <linux/fb.h> //framebuffer
 
 #include <linux/semaphore.h>
 #include <linux/wait.h>
@@ -59,6 +60,8 @@
 #define ESPI_SPI_SPEED	1000000
 #define ESPI_SCS_NUM	6
 
+struct ssd1322_fb_par;
+
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
 	struct device *dev;
@@ -68,6 +71,8 @@ struct espi_driver {
 	s32 gpio_scs[ESPI_SCS_NUM];
 	s32 gpio_sap;
 	s32 gpio_dmx;
+	
+	struct ssd1322_fb_par* boled;
 
 	u8 poll_stage;
 };
@@ -377,6 +382,7 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
+	u8 tmp;
 
 	tx_buff[0] = 0xAA;
 	
@@ -390,6 +396,10 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
+	
+	tmp = rx_buff[0] & rx_buff[1] & rx_buff[2];
+	if(tmp == 0xFF)
+		return;
 	
 	if(rx_buff[2] != 0 ) {
 		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
@@ -502,6 +512,259 @@ static void ssd1322_data(struct espi_driver* sb, u8* data, u32 len)
 	
 	espi_driver_transfer(sb->spidev, &xfer);
 }
+
+/*************************** FrameBuffer ************************************************************************/
+struct ssd1322_fb_par {
+	u32 height;
+	u32 width;
+	struct fb_info *info;
+	struct espi_driver *espi;
+};
+
+static struct fb_fix_screeninfo ssd1322_fb_fix = {
+	.id 		= "Solomon SSD1322",
+	.type 		= FB_TYPE_PACKED_PIXELS,
+	.visual		= FB_VISUAL_PSEUDOCOLOR,
+	.xpanstep	= 0,
+	.ypanstep	= 0,
+	.ywrapstep	= 0,
+	.accel 		= FB_ACCEL_NONE,
+};
+
+static struct fb_var_screeninfo ssd1322_fb_var = {
+	.bits_per_pixel = 4,
+};
+
+static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
+{
+	u8 data[2];
+	
+	struct espi_driver *sb = par->espi;
+	
+	/** DISPLAY INITIALIZATION *************/
+	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
+	
+	data[0] = 0x12;
+	ssd1322_command(sb, SSD1322_SET_CMD_LOCK, data, 1);
+	ssd1322_command(sb, SSD1322_SET_DISP_OFF, NULL, 0);
+	data[0] = 0x1C;
+	data[1] = 0x5B;
+	ssd1322_command(sb, SSD1322_SET_COL_ADDR, data, 2);
+	data[0] = 0x00;
+	data[1] = 0x3F;
+	ssd1322_command(sb, SSD1322_SET_ROW_ADDR, data, 2);
+	data[0] = 0x91;
+	ssd1322_command(sb, SSD1322_SET_DISP_CLK, data, 1);
+	data[0] = 0x3F;
+	ssd1322_command(sb, SSD1322_SET_MUX_RATIO, data, 1);
+	data[0] = 0x00;
+	ssd1322_command(sb, SSD1322_SET_DISP_OFFSET, data, 1);
+	data[0] = 0x00;
+	ssd1322_command(sb, SSD1322_SET_START_LINE, data, 1);
+	data[0] = 0x06; // -> horizontal
+	data[1] = 0x11;
+	ssd1322_command(sb, SSD1322_SET_REMAP, data, 2);	/** remapping */
+	data[0] = 0x00;
+	ssd1322_command(sb, SSD1322_SET_GPIO, data, 1);
+	data[0] = 0x01;
+	ssd1322_command(sb, SSD1322_SET_FUNC_SEL, data, 1);
+	data[0] = 0xA0;
+	data[1] = 0xFD;
+	ssd1322_command(sb, SSD1322_SET_DISP_ENH_A, data, 2);
+	data[0] = 0x9F;
+	ssd1322_command(sb, SSD1322_SET_CONTRAST_CUR, data, 1);
+	data[0] = 0x0F;
+	ssd1322_command(sb, SSD1322_SET_MASTER_CUR, data, 1);
+	ssd1322_command(sb, SSD1322_SET_LINEAR_GST, NULL, 0);
+	data[0] = 0xE2;
+	ssd1322_command(sb, SSD1322_SET_PHASE_LEN, data, 1);
+	data[0] = 0x20;
+	ssd1322_command(sb, SSD1322_SET_DISP_ENH_B, data, 1);
+	data[0] = 0x1F;
+	ssd1322_command(sb, SSD1322_SET_PRECH_VOL, data, 1);
+	data[0] = 0x08;
+	ssd1322_command(sb, SSD1322_SET_PRECH_PER, data, 1);
+	data[0] = 0x07;
+	ssd1322_command(sb, SSD1322_SET_VCOMH, data, 1);
+	ssd1322_command(sb, SSD1322_SET_DISP_MODE | 0x02, NULL, 0);
+	ssd1322_command(sb, SSD1322_SET_PARTIAL_DISP | 0x01, NULL, 0);
+	ssd1322_command(sb, SSD1322_SET_DISP_ON, NULL, 0);
+	
+	data[0] = 0x1C;
+	data[1] = 0x1C + 64 - 1;
+	ssd1322_command(sb, SSD1322_SET_COL_ADDR, data, 2);
+	data[0] = 0x00;
+	data[1] = 0x3F;
+	ssd1322_command(sb, SSD1322_SET_ROW_ADDR, data, 2);
+	ssd1322_command(sb, SSD1322_WRITE_RAM, NULL, 0);
+	
+	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, 0);
+	
+	return 0;
+}
+
+static void ssd1322_fb_update_display(struct ssd1322_fb_par *par)
+{
+	u32 i;
+	u8* buf =  (u8*) (par->info->screen_base);
+	
+	mutex_lock(&ssd1322_tmp_buff_lock);
+	for(i = 0; i < (par->width * par->height)/2; i++)
+		ssd1322_tmp_buff[i] = buf[i];
+	ssd1322_buff_updated = 1;
+	mutex_unlock(&ssd1322_tmp_buff_lock);
+	
+}
+
+static ssize_t ssd1322_fb_write(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
+{
+	struct ssd1322_fb_par *par = info->par;
+	unsigned long total_size;
+	unsigned long p = *ppos;
+	u8 __iomem *dst;
+	
+	total_size = info->fix.smem_len;
+
+	if (p > total_size)
+		return -EINVAL;
+
+	if (count + p > total_size)
+		count = total_size - p;
+
+	if (!count)
+		return -EINVAL;
+
+	dst = (void __force *) (info->screen_base + p);
+
+	if (copy_from_user(dst, buf, count))
+		return -EFAULT;
+
+	ssd1322_fb_update_display(par);
+
+	*ppos += count;
+
+	return count;
+}
+
+static void ssd1322_fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
+{
+	struct ssd1322_fb_par *par = info->par;
+	sys_fillrect(info, rect);
+	ssd1322_fb_update_display(par);
+}
+
+static void ssd1322_fb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
+{
+	struct ssd1322_fb_par *par = info->par;
+	sys_copyarea(info, area);
+	ssd1322_fb_update_display(par);
+}
+
+static void ssd1322_fb_imageblit(struct fb_info *info, const struct fb_image *image)
+{
+	struct ssd1322_fb_par *par = info->par;
+	sys_imageblit(info, image);
+	ssd1322_fb_update_display(par);
+}
+
+static struct fb_ops ssd1322_fb_ops = {
+	.owner 			= THIS_MODULE,
+	.fb_read 		= fb_sys_read,
+	.fb_write		= ssd1322_fb_write,
+    .fb_fillrect    = ssd1322_fb_fillrect,
+    .fb_copyarea    = ssd1322_fb_copyarea,
+	.fb_imageblit   = ssd1322_fb_imageblit,
+};
+
+#if 0
+static void ssd1322_fb_deferred_io(struct fb_info *info, struct list_head *pagelist)
+{
+	ssd1322_fb_update_display(info->par);
+}
+
+static struct fb_deferred_io ssd1322_fb_defio = {
+	.delay = HZ,
+	.deferred_io = ssd1322_fb_deferred_io,
+};
+#endif
+static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
+{		
+	struct fb_info *info;
+	struct ssd1322_fb_par *par;
+	u8 *vmem;
+	u32 vmem_size;
+	s32 ret;
+	
+	info = framebuffer_alloc(sizeof(struct ssd1322_fb_par), sb->dev);
+	if(!info)
+		return -ENOMEM;
+	
+	par = info->par;
+	par->info = info;
+	par->espi = sb;
+	sb->boled = par;
+	par->width = SSD1322_BUFF_WIDTH*2;
+	par->height = SSD1322_BUFF_HEIGHT;
+	
+	vmem_size = par->width * par->height / 2;
+	vmem = (u8*)devm_kzalloc(sb->dev, vmem_size, GFP_KERNEL);
+	if(!vmem) {
+		ret = -ENOMEM;
+		goto ssd1322_fb_alloc_error;
+	}
+	
+	info->fbops = &ssd1322_fb_ops;
+	info->fix	= ssd1322_fb_fix;
+	info->fix.line_length = par->width / 2;
+//	info->fbdefio	= &ssd1322_fb_defio;
+	
+	info->var = ssd1322_fb_var;
+	info->var.xres = par->width;
+	info->var.xres_virtual = par->width;
+	info->var.yres = par->height;
+	info->var.yres_virtual = par->height;
+	
+	info->var.red.length = 4;
+	info->var.red.offset = 0;
+	info->var.green.length = 4;
+	info->var.green.offset = 0;
+	info->var.blue.length = 4;
+	info->var.blue.offset = 0;
+	
+	info->screen_base = (u8 __force __iomem *)vmem;
+	info->fix.smem_start = (unsigned long)vmem;
+	info->fix.smem_len = vmem_size;
+	
+//	fb_deferred_io_init(info);
+	
+	ret = ssd1322_fb_init(par);
+	if(ret)
+		goto ssd1322_fb_reset_error;
+	
+	ret = register_framebuffer(info);
+	if(ret)
+		goto ssd1322_fb_reset_error;
+	
+	return 0;
+
+ssd1322_fb_reset_error:
+//fb_deferred_io_cleanup(info);	
+ssd1322_fb_alloc_error:
+	framebuffer_release(info);
+	return ret;
+}
+
+static s32 espi_driver_ssd1322_fb_cleanup(struct espi_driver *sb)
+{
+	struct fb_info *info = sb->boled->info;
+	
+	unregister_framebuffer(info);
+	framebuffer_release(info);
+	
+	return 0;
+}
+
+/*************************** FrameBuffer ************************************************************************/
 
 static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 {
@@ -643,8 +906,6 @@ static void espi_driver_ssd1322_poll(struct espi_driver *p)
 	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
 	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, 0);
 }
-
-
 
 /*******************************************************************************
     ssd1305 functions (soled)
@@ -1292,93 +1553,6 @@ static s32 espi_driver_buttons_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
-static void espi_driver_poll_buttons_selection(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read general panels */
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
-
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
-static void espi_driver_poll_buttons_play(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read small oled panel */
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
-	xfer.len = BUTTON_BYTES_SOLED_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
-	
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
-static void espi_driver_poll_buttons_edit(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read central (big oled) panel */
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
-	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
-
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
 static void espi_driver_pollbuttons(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
@@ -1455,7 +1629,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 }
 
 
-#ifdef ESPI_FUNCTION_TEST 
+#ifdef ESPI_FUNCTION_TEST
 static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 {
     static u8 port_cnt   = 1;    
@@ -1600,7 +1774,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_ssd1305_setup(sb);
-	espi_driver_ssd1322_setup(sb);
+	espi_driver_ssd1322_fb_setup(sb);//espi_driver_ssd1322_setup(sb);
 	espi_driver_encoder_setup(sb);
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
@@ -1619,7 +1793,7 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	cancel_delayed_work(&(sb->work));
 
 	espi_driver_encoder_cleanup(sb);
-	espi_driver_ssd1322_cleanup(sb);
+	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
 	espi_driver_ssd1305_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
 	espi_driver_leds_cleanup(sb);
