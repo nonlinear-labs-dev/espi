@@ -143,7 +143,7 @@ static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 
 /* SSD1322 stuff **************************************************************/
 #define ESPI_SSD1322_DEV_MAJOR		305
-#define ESPI_SSD1322_SPEED		5000000
+#define ESPI_SSD1322_SPEED		10000000
 
 #define SSD1322_SET_CMD_LOCK		0xFD
 #define SSD1322_SET_DISP_OFF		0xAE
@@ -524,7 +524,7 @@ struct ssd1322_fb_par {
 static struct fb_fix_screeninfo ssd1322_fb_fix = {
 	.id 		= "Solomon SSD1322",
 	.type 		= FB_TYPE_PACKED_PIXELS,
-	.visual		= FB_VISUAL_PSEUDOCOLOR,
+	.visual		= FB_VISUAL_TRUECOLOR,
 	.xpanstep	= 0,
 	.ypanstep	= 0,
 	.ywrapstep	= 0,
@@ -532,14 +532,29 @@ static struct fb_fix_screeninfo ssd1322_fb_fix = {
 };
 
 static struct fb_var_screeninfo ssd1322_fb_var = {
-	.bits_per_pixel = 4,
+	.bits_per_pixel = 16,
 };
 
 static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
 {
 	u8 data[2];
+	u32 i;
 	
 	struct espi_driver *sb = par->espi;
+	
+	
+	ssd1322_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
+	if (!ssd1322_buff)
+		return -ENOMEM;
+		
+	ssd1322_tmp_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
+	if (!ssd1322_tmp_buff)
+		return -ENOMEM;
+		
+	ssd1322_buff_updated = 0;
+	
+	for(i=0; i<SSD1322_BUFF_SIZE; i++)
+		ssd1322_buff[i] = ssd1322_tmp_buff[i] = 0x00;
 	
 	/** DISPLAY INITIALIZATION *************/
 	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
@@ -603,14 +618,24 @@ static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
 	return 0;
 }
 
+static u8 ssd1322_rgb_to_mono(u16 rgb)
+{
+	u16 tmp;	
+	tmp = 613 * (rgb >> 11) + 601 * (rgb >> 5 & 0x3F) + 233 * (rgb & 0x1F);
+	return tmp >> 12;
+}
+
 static void ssd1322_fb_update_display(struct ssd1322_fb_par *par)
 {
 	u32 i;
-	u8* buf =  (u8*) (par->info->screen_base);
+	u16* buf =  (u16*) (par->info->screen_base);
+	u32 offset = 0;
 	
 	mutex_lock(&ssd1322_tmp_buff_lock);
-	for(i = 0; i < (par->width * par->height)/2; i++)
-		ssd1322_tmp_buff[i] = buf[i];
+	for(i = 0; i < (par->width * par->height)/2; i++) {
+		ssd1322_tmp_buff[i] = ssd1322_rgb_to_mono(buf[offset++]) << 4;
+		ssd1322_tmp_buff[i] |= ssd1322_rgb_to_mono(buf[offset++]);
+	}
 	ssd1322_buff_updated = 1;
 	mutex_unlock(&ssd1322_tmp_buff_lock);
 	
@@ -706,7 +731,7 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	par->width = SSD1322_BUFF_WIDTH*2;
 	par->height = SSD1322_BUFF_HEIGHT;
 	
-	vmem_size = par->width * par->height / 2;
+	vmem_size = par->width * par->height * ssd1322_fb_var.bits_per_pixel / 8;
 	vmem = (u8*)devm_kzalloc(sb->dev, vmem_size, GFP_KERNEL);
 	if(!vmem) {
 		ret = -ENOMEM;
@@ -715,7 +740,7 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	
 	info->fbops = &ssd1322_fb_ops;
 	info->fix	= ssd1322_fb_fix;
-	info->fix.line_length = par->width / 2;
+	info->fix.line_length = par->width * ssd1322_fb_var.bits_per_pixel / 8;
 //	info->fbdefio	= &ssd1322_fb_defio;
 	
 	info->var = ssd1322_fb_var;
@@ -723,13 +748,15 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	info->var.xres_virtual = par->width;
 	info->var.yres = par->height;
 	info->var.yres_virtual = par->height;
-	
-	info->var.red.length = 4;
-	info->var.red.offset = 0;
-	info->var.green.length = 4;
-	info->var.green.offset = 0;
-	info->var.blue.length = 4;
+
+	info->var.red.offset = 11;
+	info->var.red.length = 5;
+	info->var.green.offset = 5;
+	info->var.green.length = 6;
 	info->var.blue.offset = 0;
+	info->var.blue.length = 5;
+	info->var.transp.offset = 0;
+	info->var.transp.length = 0;
 	
 	info->screen_base = (u8 __force __iomem *)vmem;
 	info->fix.smem_start = (unsigned long)vmem;
@@ -1770,12 +1797,14 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	//espi_driver_set_mode(sb, SPI_MODE_0);
 
 	sb->poll_stage = 0;
+
 	espi_driver_buttons_setup(sb);
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_ssd1305_setup(sb);
-	espi_driver_ssd1322_fb_setup(sb);//espi_driver_ssd1322_setup(sb);
 	espi_driver_encoder_setup(sb);
+	espi_driver_ssd1322_fb_setup(sb);//espi_driver_ssd1322_setup(sb);
+	
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
@@ -1792,13 +1821,14 @@ static s32 espi_driver_remove(struct spi_device *spi)
 
 	cancel_delayed_work(&(sb->work));
 
-	espi_driver_encoder_cleanup(sb);
+	
 	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
+	espi_driver_encoder_cleanup(sb);
 	espi_driver_ssd1305_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
 	espi_driver_leds_cleanup(sb);
 	espi_driver_buttons_cleanup(sb);
-	
+		
 	return 0;
 }
 
