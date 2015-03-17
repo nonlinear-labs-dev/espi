@@ -649,6 +649,8 @@ static ssize_t ssd1322_fb_write(struct fb_info *info, const char __user *buf, si
 	u8 __iomem *dst;
 	
 	total_size = info->fix.smem_len;
+	
+	printk("fb_write: %d, %d\n", count, *ppos);
 
 	if (p > total_size)
 		return -EINVAL;
@@ -676,6 +678,7 @@ static void ssd1322_fb_fillrect(struct fb_info *info, const struct fb_fillrect *
 	struct ssd1322_fb_par *par = info->par;
 	sys_fillrect(info, rect);
 	ssd1322_fb_update_display(par);
+
 }
 
 static void ssd1322_fb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
@@ -683,6 +686,7 @@ static void ssd1322_fb_copyarea(struct fb_info *info, const struct fb_copyarea *
 	struct ssd1322_fb_par *par = info->par;
 	sys_copyarea(info, area);
 	ssd1322_fb_update_display(par);
+
 }
 
 static void ssd1322_fb_imageblit(struct fb_info *info, const struct fb_image *image)
@@ -690,6 +694,22 @@ static void ssd1322_fb_imageblit(struct fb_info *info, const struct fb_image *im
 	struct ssd1322_fb_par *par = info->par;
 	sys_imageblit(info, image);
 	ssd1322_fb_update_display(par);
+
+}
+
+static int ssd1322_fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
+{
+	return 0;
+}
+
+static int ssd1322_fb_setcolreg (unsigned regno, unsigned red, unsigned green, unsigned blue, unsigned transp, struct fb_info *info)
+{
+	return 0;
+}
+
+static int ssd1322_fb_blank(int blank, struct fb_info *info)
+{
+	return 0;
 }
 
 static struct fb_ops ssd1322_fb_ops = {
@@ -699,6 +719,10 @@ static struct fb_ops ssd1322_fb_ops = {
     .fb_fillrect    = ssd1322_fb_fillrect,
     .fb_copyarea    = ssd1322_fb_copyarea,
 	.fb_imageblit   = ssd1322_fb_imageblit,
+	.fb_setcmap		= ssd1322_fb_setcmap,
+	.fb_setcolreg	= ssd1322_fb_setcolreg,
+	.fb_blank		= ssd1322_fb_blank,
+	
 };
 
 #if 0
@@ -748,6 +772,7 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	info->var.xres_virtual = par->width;
 	info->var.yres = par->height;
 	info->var.yres_virtual = par->height;
+	info->var.nonstd = 1;
 
 	info->var.red.offset = 11;
 	info->var.red.length = 5;
@@ -784,6 +809,9 @@ ssd1322_fb_alloc_error:
 static s32 espi_driver_ssd1322_fb_cleanup(struct espi_driver *sb)
 {
 	struct fb_info *info = sb->boled->info;
+	
+	kfree(ssd1322_buff);
+	kfree(ssd1322_tmp_buff);
 	
 	unregister_framebuffer(info);
 	framebuffer_release(info);
@@ -917,6 +945,13 @@ static void espi_driver_ssd1322_poll(struct espi_driver *p)
 {
 	u32 i, update = 0;
 	
+	ssd1322_fb_update_display(p->boled);
+	for(i=0; i<SSD1322_BUFF_SIZE; i++)
+		if(ssd1322_buff[i] != ssd1322_tmp_buff[i])
+			break;
+	if(i == SSD1322_BUFF_SIZE)
+		ssd1322_buff_updated = 0;
+
 	mutex_lock(&ssd1322_tmp_buff_lock);
 	if(ssd1322_buff_updated) {
 		for(i=0; i<SSD1322_BUFF_SIZE; i++)
@@ -1820,7 +1855,6 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	printk("espi_driver_remove\n");
 
 	cancel_delayed_work(&(sb->work));
-
 	
 	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
 	espi_driver_encoder_cleanup(sb);
