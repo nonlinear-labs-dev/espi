@@ -415,64 +415,6 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 /*******************************************************************************
     ssd1322 functions (boled)
 *******************************************************************************/
-static ssize_t ssd1322_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
-{
-	u32 i, j, width, height, x, y, cnt;
-	ssize_t status = 0;
-	
-	if(count < 4)
-		return -EFAULT;
-	
-	x = buf[0];
-	y = buf[1];
-	width = buf[2];
-	height = buf[3];
-	
-	if(count < (4 + 2*width*height))
-		return -EFAULT;
-		
-	mutex_lock(&ssd1322_tmp_buff_lock);
-	cnt = 4;
-	for(j = x; j < (x + width); j++)
-		for(i= j*2*SSD1322_BUFF_HEIGHT + 2*y; i<(j*2*SSD1322_BUFF_HEIGHT + 2*(y + height)); i++)
-			ssd1322_tmp_buff[i] = buf[cnt++];
-	ssd1322_buff_updated = 1;
-	status = count;
-	mutex_unlock(&ssd1322_tmp_buff_lock);
-		
-	return status;
-}
-
-static ssize_t ssd1322_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static int ssd1322_open(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static int ssd1322_release(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	return status;
-}
-
-static const struct file_operations ssd1322_fops = {
-	.owner = 	THIS_MODULE,
-	.write = 	ssd1322_write,
-	.read =		ssd1322_read,
-	.open =		ssd1322_open,
-	.release = 	ssd1322_release,
-	.llseek = 	no_llseek,
-};
-
-static struct class *ssd1322_class;
-
 static void ssd1322_command(struct espi_driver* sb, u8 cmd, u8* data, u16 len)
 {
 	struct spi_transfer xfer;
@@ -649,8 +591,6 @@ static ssize_t ssd1322_fb_write(struct fb_info *info, const char __user *buf, si
 	u8 __iomem *dst;
 	
 	total_size = info->fix.smem_len;
-	
-	printk("fb_write: %d, %d\n", count, *ppos);
 
 	if (p > total_size)
 		return -EINVAL;
@@ -709,6 +649,15 @@ static int ssd1322_fb_setcolreg (unsigned regno, unsigned red, unsigned green, u
 
 static int ssd1322_fb_blank(int blank, struct fb_info *info)
 {
+	u32 i;
+	struct ssd1322_fb_par *par = info->par;
+	
+	mutex_lock(&ssd1322_tmp_buff_lock);
+	for(i = 0; i < (par->width * par->height)/2; i++) {
+		ssd1322_tmp_buff[i] = 0;
+	}
+	ssd1322_buff_updated = 1;
+	mutex_unlock(&ssd1322_tmp_buff_lock);
 	return 0;
 }
 
@@ -725,17 +674,6 @@ static struct fb_ops ssd1322_fb_ops = {
 	
 };
 
-#if 0
-static void ssd1322_fb_deferred_io(struct fb_info *info, struct list_head *pagelist)
-{
-	ssd1322_fb_update_display(info->par);
-}
-
-static struct fb_deferred_io ssd1322_fb_defio = {
-	.delay = HZ,
-	.deferred_io = ssd1322_fb_deferred_io,
-};
-#endif
 static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 {		
 	struct fb_info *info;
@@ -765,7 +703,6 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	info->fbops = &ssd1322_fb_ops;
 	info->fix	= ssd1322_fb_fix;
 	info->fix.line_length = par->width * ssd1322_fb_var.bits_per_pixel / 8;
-//	info->fbdefio	= &ssd1322_fb_defio;
 	
 	info->var = ssd1322_fb_var;
 	info->var.xres = par->width;
@@ -787,8 +724,6 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	info->fix.smem_start = (unsigned long)vmem;
 	info->fix.smem_len = vmem_size;
 	
-//	fb_deferred_io_init(info);
-	
 	ret = ssd1322_fb_init(par);
 	if(ret)
 		goto ssd1322_fb_reset_error;
@@ -800,7 +735,6 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	return 0;
 
 ssd1322_fb_reset_error:
-//fb_deferred_io_cleanup(info);	
 ssd1322_fb_alloc_error:
 	framebuffer_release(info);
 	return ret;
@@ -820,126 +754,6 @@ static s32 espi_driver_ssd1322_fb_cleanup(struct espi_driver *sb)
 }
 
 /*************************** FrameBuffer ************************************************************************/
-
-static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
-{
-	s32 ret, i;
-	u8 data[2];
-	
-	ssd1322_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
-	if (!ssd1322_buff)
-		return -ENOMEM;
-		
-	ssd1322_tmp_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
-	if (!ssd1322_tmp_buff)
-		return -ENOMEM;
-		
-	ssd1322_buff_updated = 0;
-	
-	for(i=0; i<SSD1322_BUFF_SIZE; i++)
-		ssd1322_buff[i] = ssd1322_tmp_buff[i] = 0x00;
-	
-	/** DISPLAY INITIALIZATION *************/
-	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
-	
-	data[0] = 0x12;
-	ssd1322_command(sb, SSD1322_SET_CMD_LOCK, data, 1);
-	ssd1322_command(sb, SSD1322_SET_DISP_OFF, NULL, 0);
-	data[0] = 0x1C;
-	data[1] = 0x5B;
-	ssd1322_command(sb, SSD1322_SET_COL_ADDR, data, 2);
-	data[0] = 0x00;
-	data[1] = 0x3F;
-	ssd1322_command(sb, SSD1322_SET_ROW_ADDR, data, 2);
-	data[0] = 0x91;
-	ssd1322_command(sb, SSD1322_SET_DISP_CLK, data, 1);
-	data[0] = 0x3F;
-	ssd1322_command(sb, SSD1322_SET_MUX_RATIO, data, 1);
-	data[0] = 0x00;
-	ssd1322_command(sb, SSD1322_SET_DISP_OFFSET, data, 1);
-	data[0] = 0x00;
-	ssd1322_command(sb, SSD1322_SET_START_LINE, data, 1);
-	data[0] = 0x07;	//0x06 -> horizontal
-	data[1] = 0x11;
-	ssd1322_command(sb, SSD1322_SET_REMAP, data, 2);	/** remapping */
-	data[0] = 0x00;
-	ssd1322_command(sb, SSD1322_SET_GPIO, data, 1);
-	data[0] = 0x01;
-	ssd1322_command(sb, SSD1322_SET_FUNC_SEL, data, 1);
-	data[0] = 0xA0;
-	data[1] = 0xFD;
-	ssd1322_command(sb, SSD1322_SET_DISP_ENH_A, data, 2);
-	data[0] = 0x9F;
-	ssd1322_command(sb, SSD1322_SET_CONTRAST_CUR, data, 1);
-	data[0] = 0x0F;
-	ssd1322_command(sb, SSD1322_SET_MASTER_CUR, data, 1);
-	ssd1322_command(sb, SSD1322_SET_LINEAR_GST, NULL, 0);
-	data[0] = 0xE2;
-	ssd1322_command(sb, SSD1322_SET_PHASE_LEN, data, 1);
-	data[0] = 0x20;
-	ssd1322_command(sb, SSD1322_SET_DISP_ENH_B, data, 1);
-	data[0] = 0x1F;
-	ssd1322_command(sb, SSD1322_SET_PRECH_VOL, data, 1);
-	data[0] = 0x08;
-	ssd1322_command(sb, SSD1322_SET_PRECH_PER, data, 1);
-	data[0] = 0x07;
-	ssd1322_command(sb, SSD1322_SET_VCOMH, data, 1);
-	ssd1322_command(sb, SSD1322_SET_DISP_MODE | 0x02, NULL, 0);
-	ssd1322_command(sb, SSD1322_SET_PARTIAL_DISP | 0x01, NULL, 0);
-	ssd1322_command(sb, SSD1322_SET_DISP_ON, NULL, 0);
-	
-	data[0] = 0x1C;
-	data[1] = 0x1C + 64 - 1;
-	ssd1322_command(sb, SSD1322_SET_COL_ADDR, data, 2);
-	data[0] = 0x00;
-	data[1] = 0x3F;
-	ssd1322_command(sb, SSD1322_SET_ROW_ADDR, data, 2);
-	ssd1322_command(sb, SSD1322_WRITE_RAM, NULL, 0);
-	ssd1322_data(sb, ssd1322_buff, SSD1322_BUFF_SIZE);
-	
-	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, 0);
-	
-	/**** prepare device ***/
-	ret = register_chrdev(ESPI_SSD1322_DEV_MAJOR, "spi", &ssd1322_fops);
-	if (ret < 0)
-		pr_err("%s: problem at register_chrdev\n", __func__);
-		
-	ssd1322_class = class_create(THIS_MODULE, "ssd1322-oled");
-	if(IS_ERR(ssd1322_class))
-		pr_err("%s: unable to create class\n", __func__);
-		
-	device_create(ssd1322_class, sb->dev, MKDEV(ESPI_SSD1322_DEV_MAJOR, 0), sb, "ssd1322");
-	
-	return 0;
-}
-
-static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
-{
-	kfree(ssd1322_buff);
-	kfree(ssd1322_tmp_buff);
-		
-	device_destroy(ssd1322_class, MKDEV(ESPI_SSD1322_DEV_MAJOR, 0));
-	class_destroy(ssd1322_class);
-	unregister_chrdev(ESPI_SSD1322_DEV_MAJOR, "spi");
-	
-	return 0;
-}
-
-#ifdef ESPI_BOLED_TEST
-static const uint8_t bdw = 5, bdh = 5;
-static uint8_t boled_debug[54];
-
-static void espi_driver_poll_boled_force_write(struct espi_driver *p)
-{
-	uint8_t i;
-	uint32_t bd_len = 4+2*bdw*bdh;
-	boled_debug[0] = boled_debug[1]=5;
-	boled_debug[2] = boled_debug[3] = 5;
-	for(i=4;i<bd_len;i++)
-		boled_debug[i] = 0xF0;
-	ssd1322_write(NULL, boled_debug, bd_len, NULL);
-}
-#endif
 
 static void espi_driver_ssd1322_poll(struct espi_driver *p)
 {
