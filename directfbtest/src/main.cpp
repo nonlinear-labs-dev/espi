@@ -31,6 +31,9 @@ int main (int argc, char **argv)
   
   DFBCHECK (dfb->CreateSurface( dfb, &dsc, &primary ));
   DFBCHECK (primary->GetSize (primary, &screen_width, &screen_height));
+  
+  printf("width: %d, height: %d\n", screen_width, screen_height);
+  
   DFBCHECK (primary->FillRectangle (primary, 0, 0, screen_width, screen_height));
   DFBCHECK (primary->SetColor (primary, 0x80, 0x80, 0xff, 0xff));
   DFBCHECK (primary->DrawLine (primary, 0, screen_height / 2, screen_width - 1, screen_height / 2));
