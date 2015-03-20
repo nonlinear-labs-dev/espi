@@ -57,7 +57,7 @@
 #endif
 
 
-#define ESPI_SPI_SPEED	1000000
+#define ESPI_SPI_SPEED	5000000//1000000
 #define ESPI_SCS_NUM	6
 
 struct ssd1322_fb_par;
