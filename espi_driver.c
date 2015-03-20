@@ -651,13 +651,15 @@ static int ssd1322_fb_blank(int blank, struct fb_info *info)
 {
 	u32 i;
 	struct ssd1322_fb_par *par = info->par;
-	
+#if 0	
 	mutex_lock(&ssd1322_tmp_buff_lock);
 	for(i = 0; i < (par->width * par->height)/2; i++) {
 		ssd1322_tmp_buff[i] = 0;
 	}
 	ssd1322_buff_updated = 1;
 	mutex_unlock(&ssd1322_tmp_buff_lock);
+	
+#endif
 	return 0;
 }
 
