@@ -57,7 +57,7 @@
 #endif
 
 
-#define ESPI_SPI_SPEED	5000000//1000000
+#define ESPI_SPI_SPEED	1000000
 #define ESPI_SCS_NUM	6
 
 struct ssd1322_fb_par;
@@ -649,9 +649,10 @@ static int ssd1322_fb_setcolreg (unsigned regno, unsigned red, unsigned green, u
 
 static int ssd1322_fb_blank(int blank, struct fb_info *info)
 {
+#if 0
 	u32 i;
 	struct ssd1322_fb_par *par = info->par;
-#if 0	
+		
 	mutex_lock(&ssd1322_tmp_buff_lock);
 	for(i = 0; i < (par->width * par->height)/2; i++) {
 		ssd1322_tmp_buff[i] = 0;
