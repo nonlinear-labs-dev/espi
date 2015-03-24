@@ -12,6 +12,7 @@
 #include <linux/delay.h>  // nni: added for msleep()
 #include <linux/platform_device.h>
 #include <linux/fb.h> //framebuffer
+#include <linux/vmalloc.h>
 
 #include <linux/semaphore.h>
 #include <linux/wait.h>
@@ -697,7 +698,9 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	par->height = SSD1322_BUFF_HEIGHT;
 	
 	vmem_size = par->width * par->height * ssd1322_fb_var.bits_per_pixel / 8;
-	vmem = (u8*)devm_kzalloc(sb->dev, vmem_size, GFP_KERNEL);
+//	vmem = (u8*)devm_kzalloc(sb->dev, vmem_size, GFP_KERNEL);
+//	vmem = (u8*)vzalloc(vmem_size);
+	vmem = (u8 *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, get_order(vmem_size));
 	if(!vmem) {
 		ret = -ENOMEM;
 		goto ssd1322_fb_alloc_error;
@@ -724,7 +727,7 @@ static s32 espi_driver_ssd1322_fb_setup(struct espi_driver *sb)
 	info->var.transp.length = 0;
 	
 	info->screen_base = (u8 __force __iomem *)vmem;
-	info->fix.smem_start = (unsigned long)vmem;
+	info->fix.smem_start = __pa(vmem);
 	info->fix.smem_len = vmem_size;
 	
 	ret = ssd1322_fb_init(par);
@@ -749,6 +752,7 @@ static s32 espi_driver_ssd1322_fb_cleanup(struct espi_driver *sb)
 	
 	kfree(ssd1322_buff);
 	kfree(ssd1322_tmp_buff);
+	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));
 	
 	unregister_framebuffer(info);
 	framebuffer_release(info);
