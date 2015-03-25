@@ -519,7 +519,7 @@ static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
 	ssd1322_command(sb, SSD1322_SET_DISP_OFFSET, data, 1);
 	data[0] = 0x00;
 	ssd1322_command(sb, SSD1322_SET_START_LINE, data, 1);
-	data[0] = 0x07;//0x06; // -> horizontal
+	data[0] = 0x06; // -> horizontal
 	data[1] = 0x11;
 	ssd1322_command(sb, SSD1322_SET_REMAP, data, 2);	/** remapping */
 	data[0] = 0x00;
