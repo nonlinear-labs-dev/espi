@@ -519,7 +519,7 @@ static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
 	ssd1322_command(sb, SSD1322_SET_DISP_OFFSET, data, 1);
 	data[0] = 0x00;
 	ssd1322_command(sb, SSD1322_SET_START_LINE, data, 1);
-	data[0] = 0x06; // -> horizontal
+	data[0] = 0x07;//0x06; // -> horizontal
 	data[1] = 0x11;
 	ssd1322_command(sb, SSD1322_SET_REMAP, data, 2);	/** remapping */
 	data[0] = 0x00;
@@ -555,6 +555,7 @@ static s32 ssd1322_fb_init(struct ssd1322_fb_par *par)
 	data[1] = 0x3F;
 	ssd1322_command(sb, SSD1322_SET_ROW_ADDR, data, 2);
 	ssd1322_command(sb, SSD1322_WRITE_RAM, NULL, 0);
+	ssd1322_data(sb, ssd1322_buff, SSD1322_BUFF_SIZE);
 	
 	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, 0);
 	
@@ -1658,9 +1659,8 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_ssd1305_setup(sb);
-	espi_driver_encoder_setup(sb);
 	espi_driver_ssd1322_fb_setup(sb);//espi_driver_ssd1322_setup(sb);
-	
+	espi_driver_encoder_setup(sb);
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
@@ -1677,8 +1677,8 @@ static s32 espi_driver_remove(struct spi_device *spi)
 
 	cancel_delayed_work(&(sb->work));
 	
-	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
 	espi_driver_encoder_cleanup(sb);
+	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
 	espi_driver_ssd1305_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
 	espi_driver_leds_cleanup(sb);
