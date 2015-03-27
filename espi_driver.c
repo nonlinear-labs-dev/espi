@@ -1565,16 +1565,16 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 2:
 	case 4:
 	case 6:
-//		espi_driver_pollbuttons((struct espi_driver *)p);
-//		espi_driver_encoder_poll((struct espi_driver *)p);
+		espi_driver_pollbuttons((struct espi_driver *)p);
+		espi_driver_encoder_poll((struct espi_driver *)p);
 		break;
 	case 1:
 	case 5:
-//		espi_driver_leds_poll((struct espi_driver *)p);
-//		espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll((struct espi_driver *)p);
 		break;
 	case 3:
-//		espi_driver_ssd1305_poll((struct espi_driver *)p);
+		espi_driver_ssd1305_poll((struct espi_driver *)p);
 		break;
 	case 7:
 		espi_driver_ssd1322_poll((struct espi_driver *)p);
@@ -1655,12 +1655,12 @@ static s32 espi_driver_probe(struct spi_device *dev)
 
 	sb->poll_stage = 0;
 
-//	espi_driver_buttons_setup(sb);
-//	espi_driver_leds_setup(sb);
-//	espi_driver_rb_leds_setup(sb);
-//	espi_driver_ssd1305_setup(sb);
+	espi_driver_buttons_setup(sb);
+	espi_driver_leds_setup(sb);
+	espi_driver_rb_leds_setup(sb);
+	espi_driver_ssd1305_setup(sb);
 	espi_driver_ssd1322_fb_setup(sb);//espi_driver_ssd1322_setup(sb);
-//	espi_driver_encoder_setup(sb);
+	espi_driver_encoder_setup(sb);
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
@@ -1677,12 +1677,12 @@ static s32 espi_driver_remove(struct spi_device *spi)
 
 	cancel_delayed_work(&(sb->work));
 	
-//	espi_driver_encoder_cleanup(sb);
+	espi_driver_encoder_cleanup(sb);
 	espi_driver_ssd1322_fb_cleanup(sb);//espi_driver_ssd1322_cleanup(sb);
-//	espi_driver_ssd1305_cleanup(sb);
-//	espi_driver_rb_leds_cleanup(sb);
-//	espi_driver_leds_cleanup(sb);
-//	espi_driver_buttons_cleanup(sb);
+	espi_driver_ssd1305_cleanup(sb);
+	espi_driver_rb_leds_cleanup(sb);
+	espi_driver_leds_cleanup(sb);
+	espi_driver_buttons_cleanup(sb);
 		
 	return 0;
 }
