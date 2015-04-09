@@ -11,6 +11,8 @@
 #include <linux/of_gpio.h>  // nni: added for device tree
 #include <linux/delay.h>  // nni: added for msleep()
 #include <linux/platform_device.h>
+#include <linux/fb.h> //framebuffer
+#include <linux/vmalloc.h>
 
 #include <linux/semaphore.h>
 #include <linux/wait.h>
@@ -20,7 +22,11 @@
 #include <linux/hrtimer.h>
 #include <linux/hardirq.h>
 
-
+#ifdef ESPI_FUNCTION_TEST
+#define ESPI_BOLED_TEST
+#define ESPI_RIBBON_LED_TEST
+#define ESPI_LED_TEST
+#endif
 
 #if 0 // HW V.2 Rev.A
 #define ESPI_ATTENUATOR_PORT		2
@@ -52,29 +58,10 @@
 #endif
 
 
-
-#if 0 // container - move to hw v.2 rev.c - delete later
-
-#define ESPI_PORT_EDIT_PANEL                    0
-#define ESPI_PORT_SELECTION_PANELS              1
-
-#define ESPI_PORT_SPARE                         2      
-
-#define ESPI_DEVICE_EDIT_PANEL_BUTTONS          1
-#define ESPI_DEVICE_EDIT_PANEL_BOLED            2
-#define ESPI_DEVICE_EDIT_PANEL_ENCODER          3
-
-#define ESPI_DEVICE_SELECTION_PANELS_BUTTONS    1
-#define ESPI_DEVICE_SELECTION_PANELS_LEDS       2
-
-#define ESPI_DEVICE_TOP_COVER_BUTTONS           1
-#define ESPI_DEVICE_TOP_COVER_SOLED             3
-
-#endif
-
-
 #define ESPI_SPI_SPEED	1000000
 #define ESPI_SCS_NUM	6
+
+struct oleds_fb_par;
 
 struct espi_driver {
 	struct delayed_work work; // This must be the top entry!
@@ -85,6 +72,8 @@ struct espi_driver {
 	s32 gpio_scs[ESPI_SCS_NUM];
 	s32 gpio_sap;
 	s32 gpio_dmx;
+	
+	struct oleds_fb_par* oleds;
 
 	u8 poll_stage;
 };
@@ -155,7 +144,7 @@ static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 
 /* SSD1322 stuff **************************************************************/
 #define ESPI_SSD1322_DEV_MAJOR		305
-#define ESPI_SSD1322_SPEED		5000000
+#define ESPI_SSD1322_SPEED		5000000//10000000
 
 #define SSD1322_SET_CMD_LOCK		0xFD
 #define SSD1322_SET_DISP_OFF		0xAE
@@ -187,7 +176,6 @@ static DEFINE_MUTEX(ssd1305_tmp_buff_lock);
 #define SSD1322_BUFF_HEIGHT		64
 static u8 *ssd1322_buff;
 static u8 *ssd1322_tmp_buff;
-static u8 ssd1322_buff_updated;
 static DEFINE_MUTEX(ssd1322_tmp_buff_lock);
 
 /* Encoder stuff **************************************************************/
@@ -394,6 +382,7 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
+	u8 tmp;
 
 	tx_buff[0] = 0xAA;
 	
@@ -408,6 +397,10 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 	
+	tmp = rx_buff[0] & rx_buff[1] & rx_buff[2];
+	if(tmp == 0xFF)
+		return;
+	
 	if(rx_buff[2] != 0 ) {
 		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
 		    !(encoder_delta + (s8)rx_buff[2] < -128)) {
@@ -419,67 +412,17 @@ static void espi_driver_encoder_poll(struct espi_driver *p)
 	}
 }
 
+/*************************** FrameBuffer ************************************************************************/
+struct oleds_fb_par {
+	u32 height;
+	u32 width;
+	struct fb_info *info;
+	struct espi_driver *espi;
+};
+
 /*******************************************************************************
     ssd1322 functions (boled)
 *******************************************************************************/
-static ssize_t ssd1322_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
-{
-	u32 i, j, width, height, x, y, cnt;
-	ssize_t status = 0;
-	
-	if(count < 4)
-		return -EFAULT;
-	
-	x = buf[0];
-	y = buf[1];
-	width = buf[2];
-	height = buf[3];
-	
-	if(count < (4 + 2*width*height))
-		return -EFAULT;
-		
-	mutex_lock(&ssd1322_tmp_buff_lock);
-	cnt = 4;
-	for(j = x; j < (x + width); j++)
-		for(i= j*2*SSD1322_BUFF_HEIGHT + 2*y; i<(j*2*SSD1322_BUFF_HEIGHT + 2*(y + height)); i++)
-			ssd1322_tmp_buff[i] = buf[cnt++];
-	ssd1322_buff_updated = 1;
-	status = count;
-	mutex_unlock(&ssd1322_tmp_buff_lock);
-		
-	return status;
-}
-
-static ssize_t ssd1322_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static int ssd1322_open(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static int ssd1322_release(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	return status;
-}
-
-static const struct file_operations ssd1322_fops = {
-	.owner = 	THIS_MODULE,
-	.write = 	ssd1322_write,
-	.read =		ssd1322_read,
-	.open =		ssd1322_open,
-	.release = 	ssd1322_release,
-	.llseek = 	no_llseek,
-};
-
-static struct class *ssd1322_class;
-
 static void ssd1322_command(struct espi_driver* sb, u8 cmd, u8* data, u16 len)
 {
 	struct spi_transfer xfer;
@@ -520,10 +463,12 @@ static void ssd1322_data(struct espi_driver* sb, u8* data, u32 len)
 	espi_driver_transfer(sb->spidev, &xfer);
 }
 
-static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
+static s32 ssd1322_fb_init(struct oleds_fb_par *par)
 {
-	s32 ret, i;
 	u8 data[2];
+	u32 i;
+	
+	struct espi_driver *sb = par->espi;
 	
 	ssd1322_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
 	if (!ssd1322_buff)
@@ -532,8 +477,6 @@ static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 	ssd1322_tmp_buff = kcalloc(SSD1322_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
 	if (!ssd1322_tmp_buff)
 		return -ENOMEM;
-		
-	ssd1322_buff_updated = 0;
 	
 	for(i=0; i<SSD1322_BUFF_SIZE; i++)
 		ssd1322_buff[i] = ssd1322_tmp_buff[i] = 0x00;
@@ -558,7 +501,7 @@ static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 	ssd1322_command(sb, SSD1322_SET_DISP_OFFSET, data, 1);
 	data[0] = 0x00;
 	ssd1322_command(sb, SSD1322_SET_START_LINE, data, 1);
-	data[0] = 0x07;	//0x06 -> horizontal
+	data[0] = 0x06; // -> horizontal
 	data[1] = 0x11;
 	ssd1322_command(sb, SSD1322_SET_REMAP, data, 2);	/** remapping */
 	data[0] = 0x00;
@@ -598,129 +541,18 @@ static s32 espi_driver_ssd1322_setup(struct espi_driver *sb)
 	
 	espi_driver_scs_select(sb, ESPI_EDIT_PANEL_PORT, 0);
 	
-	/**** prepare device ***/
-	ret = register_chrdev(ESPI_SSD1322_DEV_MAJOR, "spi", &ssd1322_fops);
-	if (ret < 0)
-		pr_err("%s: problem at register_chrdev\n", __func__);
-		
-	ssd1322_class = class_create(THIS_MODULE, "ssd1322-oled");
-	if(IS_ERR(ssd1322_class))
-		pr_err("%s: unable to create class\n", __func__);
-		
-	device_create(ssd1322_class, sb->dev, MKDEV(ESPI_SSD1322_DEV_MAJOR, 0), sb, "ssd1322");
-	
 	return 0;
 }
-
-static s32 espi_driver_ssd1322_cleanup(struct espi_driver *sb)
-{
-	kfree(ssd1322_buff);
-	kfree(ssd1322_tmp_buff);
-		
-	device_destroy(ssd1322_class, MKDEV(ESPI_SSD1322_DEV_MAJOR, 0));
-	class_destroy(ssd1322_class);
-	unregister_chrdev(ESPI_SSD1322_DEV_MAJOR, "spi");
-	
-	return 0;
-}
-
-static const uint8_t bdw = 5, bdh = 5;
-static uint8_t boled_debug[54];
-#if 1
-static void espi_driver_poll_boled_force_write(struct espi_driver *p)
-{
-	uint8_t i;
-	uint32_t bd_len = 4+2*bdw*bdh;
-	boled_debug[0] = boled_debug[1]=5;
-	boled_debug[2] = boled_debug[3] = 5;
-	for(i=4;i<bd_len;i++)
-		boled_debug[i] = 0xF0;
-	ssd1322_write(NULL, boled_debug, bd_len, NULL);
-}
-#endif
-
-static void espi_driver_ssd1322_poll(struct espi_driver *p)
-{
-	u32 i, update = 0;
-	
-	mutex_lock(&ssd1322_tmp_buff_lock);
-	if(ssd1322_buff_updated) {
-		for(i=0; i<SSD1322_BUFF_SIZE; i++)
-			ssd1322_buff[i] = ssd1322_tmp_buff[i];
-		update = 1;
-		ssd1322_buff_updated = 0;
-	}
-	mutex_unlock(&ssd1322_tmp_buff_lock);
-	
-	if(update == 0)
-		return;
-	
-	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
-	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
-	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, 0);
-}
-
-
 
 /*******************************************************************************
     ssd1305 functions (soled)
 *******************************************************************************/
-static ssize_t ssd1305_write(   struct file *filp, 
-                                const char __user *buf,     
-                                size_t count, 
-                                loff_t *f_pos)
-{
-	ssize_t status = 0;
-	
-	if(count != SSD1305_BUFF_SIZE)
-		return status;
-		
-	mutex_lock(&ssd1305_tmp_buff_lock);
-	status = copy_from_user(ssd1305_tmp_buff, buf, count);
-	mutex_unlock(&ssd1305_tmp_buff_lock);
-	
-	if(status == 0)
-		status = count;
-	else
-		status = -EFAULT;
-		
-	return status;
-}
 
-static ssize_t ssd1305_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static int ssd1305_open(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static int ssd1305_release(struct inode *inode, struct file *filp)
-{
-    	int status = 0;
-	return status;
-}
-
-static const struct file_operations ssd1305_fops = {
-	.owner = 	THIS_MODULE,
-	.write = 	ssd1305_write,
-	.read =		ssd1305_read,
-	.open =		ssd1305_open,
-	.release = 	ssd1305_release,
-	.llseek = 	no_llseek,
-};
-
-static struct class *ssd1305_class;
-
-static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
+static s32 ssd1305_fb_init(struct oleds_fb_par *par)
 {
 	struct spi_transfer xfer;
-	s32 i, ret;
+	s32 i;
+	struct espi_driver *sb = par->espi;
 	
 	ssd1305_buff = kcalloc(SSD1305_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
 	if (!ssd1305_buff)
@@ -785,30 +617,264 @@ static s32 espi_driver_ssd1305_setup(struct espi_driver *sb)
 	espi_driver_transfer(sb->spidev, &xfer);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	
-	/**** prepare device ***/
-	ret = register_chrdev(ESPI_SSD1305_DEV_MAJOR, "spi", &ssd1305_fops);
-	if (ret < 0)
-		pr_err("%s: problem at register_chrdev\n", __func__);
+	return 0;
+}
+
+static struct fb_fix_screeninfo oleds_fb_fix = {
+	.id 		= "NL Emphase FB",
+	.type 		= FB_TYPE_PACKED_PIXELS,
+	.visual		= FB_VISUAL_TRUECOLOR,
+	.xpanstep	= 0,
+	.ypanstep	= 0,
+	.ywrapstep	= 0,
+	.accel 		= FB_ACCEL_NONE,
+};
+
+static struct fb_var_screeninfo oleds_fb_var = {
+	.bits_per_pixel = 16,
+};
+
+static u8 ssd1322_rgb_to_mono(u16 rgb)
+{
+	u16 tmp;	
+	tmp = 613 * (rgb >> 11) + 601 * (rgb >> 5 & 0x3F) + 233 * (rgb & 0x1F);
+	return tmp >> 12;
+}
+
+static u8 ssd1305_rgb_to_mono(u16 rgb)
+{
+	if(ssd1322_rgb_to_mono(rgb) > 0)
+		return 1;
+	else
+		return 0;
+}
+
+static void oleds_fb_update_display(struct oleds_fb_par *par)
+{
+	u32 i, j, k;
+	u16* buf =  (u16*) (par->info->screen_base);
+	u32 offset = 0;
+	u32 tmp;
+	
+	mutex_lock(&ssd1322_tmp_buff_lock);
+	for(i = 0; i < SSD1322_BUFF_SIZE; i++) {
+		ssd1322_tmp_buff[i] = ssd1322_rgb_to_mono(buf[offset++]) << 4;
+		ssd1322_tmp_buff[i] |= ssd1322_rgb_to_mono(buf[offset++]);
+	}
+	mutex_unlock(&ssd1322_tmp_buff_lock);
+	
+	mutex_lock(&ssd1305_tmp_buff_lock);
+	for(j = 0; j < 4; j++) {
+		for(i = 0; i < 128; i++) {
+			tmp = j*132 + i + 4;
+			ssd1305_tmp_buff[tmp] = 0;
+			for(k = 0; k < 7; k++)
+				ssd1305_tmp_buff[tmp] |= ssd1305_rgb_to_mono(buf[offset + k*256]) << k;
+		}
+		offset += 8*256;
+	}
+	mutex_unlock(&ssd1305_tmp_buff_lock);
+}
+
+static ssize_t oleds_fb_write(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
+{
+	struct oleds_fb_par *par = info->par;
+	unsigned long total_size;
+	unsigned long p = *ppos;
+	u8 __iomem *dst;
+	
+	total_size = info->fix.smem_len;
+
+	if (p > total_size)
+		return -EINVAL;
+
+	if (count + p > total_size)
+		count = total_size - p;
+
+	if (!count)
+		return -EINVAL;
+
+	dst = (void __force *) (info->screen_base + p);
+
+	if (copy_from_user(dst, buf, count))
+		return -EFAULT;
+
+	oleds_fb_update_display(par);
+
+	*ppos += count;
+
+	return count;
+}
+
+static void oleds_fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect)
+{
+	struct oleds_fb_par *par = info->par;
+	sys_fillrect(info, rect);
+	oleds_fb_update_display(par);
+
+}
+
+static void oleds_fb_copyarea(struct fb_info *info, const struct fb_copyarea *area)
+{
+	struct oleds_fb_par *par = info->par;
+	sys_copyarea(info, area);
+	oleds_fb_update_display(par);
+
+}
+
+static void oleds_fb_imageblit(struct fb_info *info, const struct fb_image *image)
+{
+	struct oleds_fb_par *par = info->par;
+	sys_imageblit(info, image);
+	oleds_fb_update_display(par);
+
+}
+
+static int oleds_fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
+{
+	return 0;
+}
+
+static int oleds_fb_setcolreg (unsigned regno, unsigned red, unsigned green, unsigned blue, unsigned transp, struct fb_info *info)
+{
+	return 0;
+}
+
+static int oleds_fb_blank(int blank, struct fb_info *info)
+{
+#if 0
+	u32 i;
+	struct ssd1322_fb_par *par = info->par;
 		
-	ssd1305_class = class_create(THIS_MODULE, "ssd1305-oled");
-	if(IS_ERR(ssd1305_class))
-		pr_err("%s: unable to create class\n", __func__);
+	mutex_lock(&ssd1322_tmp_buff_lock);
+	for(i = 0; i < (par->width * par->height)/2; i++) {
+		ssd1322_tmp_buff[i] = 0;
+	}
+	mutex_unlock(&ssd1322_tmp_buff_lock);
+	
+#endif
+	return 0;
+}
+
+static struct fb_ops oleds_fb_ops = {
+	.owner 			= THIS_MODULE,
+	.fb_read 		= fb_sys_read,
+	.fb_write		= oleds_fb_write,
+    .fb_fillrect    = oleds_fb_fillrect,
+    .fb_copyarea    = oleds_fb_copyarea,
+	.fb_imageblit   = oleds_fb_imageblit,
+	.fb_setcmap		= oleds_fb_setcmap,
+	.fb_setcolreg	= oleds_fb_setcolreg,
+	.fb_blank		= oleds_fb_blank,
+	
+};
+
+static s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
+{		
+	struct fb_info *info;
+	struct oleds_fb_par *par;
+	u8 *vmem;
+	u32 vmem_size;
+	s32 ret;
+	
+	info = framebuffer_alloc(sizeof(struct oleds_fb_par), sb->dev);
+	if(!info)
+		return -ENOMEM;
+	
+	par = info->par;
+	par->info = info;
+	par->espi = sb;
+	sb->oleds = par;
+	par->width = 256;
+	par->height = 96;
+	
+	vmem_size = par->width * par->height * oleds_fb_var.bits_per_pixel / 8;
+	vmem = (u8 *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, get_order(vmem_size));
+	if(!vmem) {
+		ret = -ENOMEM;
+		goto oleds_fb_alloc_error;
+	}
+	
+	info->fbops = &oleds_fb_ops;
+	info->fix	= oleds_fb_fix;
+	info->fix.line_length = par->width * oleds_fb_var.bits_per_pixel / 8;
+	
+	info->var = oleds_fb_var;
+	info->var.xres = par->width;
+	info->var.xres_virtual = par->width;
+	info->var.yres = par->height;
+	info->var.yres_virtual = par->height;
+	info->var.nonstd = 1;
+
+	info->var.red.offset = 11;
+	info->var.red.length = 5;
+	info->var.green.offset = 5;
+	info->var.green.length = 6;
+	info->var.blue.offset = 0;
+	info->var.blue.length = 5;
+	info->var.transp.offset = 0;
+	info->var.transp.length = 0;
+	
+	info->screen_base = (u8 __force __iomem *)vmem;
+	info->fix.smem_start = __pa(vmem);
+	info->fix.smem_len = vmem_size;
+	
+	ret = ssd1322_fb_init(par);
+	if(ret)
+		goto oleds_fb_reset_error;
 		
-	device_create(ssd1305_class, sb->dev, MKDEV(ESPI_SSD1305_DEV_MAJOR, 0), sb, "ssd1305");
+	ret = ssd1305_fb_init(par);
+	if(ret)
+		goto oleds_fb_reset_error;
+	
+	ret = register_framebuffer(info);
+	if(ret)
+		goto oleds_fb_reset_error;
+	
+	return 0;
+
+oleds_fb_reset_error:
+oleds_fb_alloc_error:
+	framebuffer_release(info);
+	return ret;
+}
+
+static s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
+{
+	struct fb_info *info = sb->oleds->info;
+	
+	kfree(ssd1322_buff);
+	kfree(ssd1322_tmp_buff);
+	kfree(ssd1305_buff);
+	kfree(ssd1305_tmp_buff);
+	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));
+	
+	unregister_framebuffer(info);
+	framebuffer_release(info);
 	
 	return 0;
 }
 
-static s32 espi_driver_ssd1305_cleanup(struct espi_driver *sb)
+static void espi_driver_ssd1322_poll(struct espi_driver *p)
 {
-	kfree(ssd1305_buff);
-	kfree(ssd1305_tmp_buff);
+	u32 i, update = 0;
 	
-	device_destroy(ssd1305_class, MKDEV(ESPI_SSD1305_DEV_MAJOR, 0));
-	class_destroy(ssd1305_class);
-	unregister_chrdev(ESPI_SSD1305_DEV_MAJOR, "spi");
+	oleds_fb_update_display(p->oleds);
 	
-	return 0;
+	mutex_lock(&ssd1322_tmp_buff_lock);
+	for(i=0; i<SSD1322_BUFF_SIZE; i++)
+		if(ssd1322_buff[i] != ssd1322_tmp_buff[i]) {
+			ssd1322_buff[i] = ssd1322_tmp_buff[i];
+			update = 1;
+		}
+	mutex_unlock(&ssd1322_tmp_buff_lock);
+	
+	if(update == 0)
+		return;
+	
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
+	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, 0);
 }
 
 static void espi_driver_ssd1305_poll(struct espi_driver *p)
@@ -817,6 +883,8 @@ static void espi_driver_ssd1305_poll(struct espi_driver *p)
 	u32 i;
 	u8 update = 0;
 
+	oleds_fb_update_display(p->oleds);
+	
 	mutex_lock(&ssd1305_tmp_buff_lock);
 	for(i=0; i<SSD1305_BUFF_SIZE; i++) {
 		if(ssd1305_buff[i] ^ ssd1305_tmp_buff[i]) {
@@ -965,7 +1033,7 @@ static void espi_driver_rb_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
 
-
+#ifdef ESPI_RIBBON_LED_TEST
 u8 debug_led_state[RIBBON_LED_STATES_SIZE] = { 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3,
 						0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3};
 u8 debug_ribbon[12] = {0x0, 0x3, 0x8, 0x2, 0xA, 0x3, 0xC, 0x1,
@@ -979,32 +1047,32 @@ static void espi_driver_rb_leds_poll_force_write(struct espi_driver *p)
 	static u8 led_brightness[3] = {0,1,2};
 	struct spi_transfer xfer;
 	u8 i;
-/*	
-	if(debug_led_state[0] == 0xC3)
-		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
-			debug_led_state[i] = 0x3C;
-	else
-		for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
-			debug_led_state[i] = 0xC3;
-*/
+	/*	
+		if(debug_led_state[0] == 0xC3)
+			for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
+				debug_led_state[i] = 0x3C;
+		else
+			for(i=0; i<RIBBON_LED_STATES_SIZE; i++)
+				debug_led_state[i] = 0xC3;
+	*/
 
-/*
-for(i=0; i<3; i++){
-debug_ribbon[2*i+1] = debug_ribbon[2*i+7] = led_brightness[i];
-if(led_brightness[i]++ == 3)
-	led_brightness[i] = 1;
-}
-*/
-for(i=0; i<10; i++) {
-debug_ribbon[0] = 2*i+1;
-debug_ribbon[1] = 3;	
-rbled_write(NULL, debug_ribbon, 2, 0);
-}
-for(i=0; i<20; i++) {
-debug_ribbon[0] = 2*i;
-debug_ribbon[1] = 3;	
-rbled_write(NULL, debug_ribbon, 2, 0);
-}
+	/*
+	for(i=0; i<3; i++){
+	debug_ribbon[2*i+1] = debug_ribbon[2*i+7] = led_brightness[i];
+	if(led_brightness[i]++ == 3)
+		led_brightness[i] = 1;
+	}
+	*/
+	for(i=0; i<10; i++) {
+	debug_ribbon[0] = 2*i+1;
+	debug_ribbon[1] = 3;	
+	rbled_write(NULL, debug_ribbon, 2, 0);
+	}
+	for(i=0; i<20; i++) {
+	debug_ribbon[0] = 2*i;
+	debug_ribbon[1] = 3;	
+	rbled_write(NULL, debug_ribbon, 2, 0);
+	}
 
 	xfer.tx_buf = rb_led_new_st;//debug_led_state;
 	xfer.rx_buf = NULL;
@@ -1020,7 +1088,7 @@ rbled_write(NULL, debug_ribbon, 2, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);
 }
-
+#endif
 
 
 /*******************************************************************************
@@ -1148,6 +1216,7 @@ static void espi_driver_leds_poll(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
 
+#ifdef ESPI_LED_TEST
 u8 debug_sel_led_state[LED_STATES_SIZE] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0};
 
 // dtz: debug function
@@ -1183,6 +1252,7 @@ if(i > (0x80+24)) i=0x80;
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
 }
+#endif
 
 /*******************************************************************************
     buttons functions
@@ -1306,93 +1376,6 @@ static s32 espi_driver_buttons_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
-static void espi_driver_poll_buttons_selection(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read general panels */
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, 0);
-
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
-static void espi_driver_poll_buttons_play(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read small oled panel */
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL;
-	xfer.len = BUTTON_BYTES_SOLED_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
-	
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
-static void espi_driver_poll_buttons_edit(struct espi_driver *p)
-{
-	struct spi_transfer xfer;
-	u8 rx[BUTTON_STATES_SIZE];
-	u8 i, j, xor, bit, btn_id;
-
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx;
-	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
-	xfer.bits_per_word = 8;
-	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-
-	/** read central (big oled) panel */
-	xfer.tx_buf = NULL;
-	xfer.rx_buf = rx + BUTTON_BYTES_GENERAL_PANELS;
-	xfer.len = BUTTON_BYTES_CENTRAL_PANEL;
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BUTTONS_DEVICE);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
-	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
-
-
-	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-
-}
-
 static void espi_driver_pollbuttons(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
@@ -1436,7 +1419,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
       
       	/***** MASKING ******/
-	rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
+	//rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
 	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
 
 	/** check read states */
@@ -1469,7 +1452,7 @@ static void espi_driver_pollbuttons(struct espi_driver *p)
 }
 
 
-
+#ifdef ESPI_FUNCTION_TEST
 static void espi_driver_dbg_scan_scs(struct espi_driver *p)
 {
     static u8 port_cnt   = 1;    
@@ -1487,39 +1470,30 @@ static void espi_driver_dbg_scan_scs(struct espi_driver *p)
     
     espi_driver_scs_select((struct espi_driver *)p, port_cnt + 1, device_cnt);  
 }
-
+#endif
 
 /*******************************************************************************
     SCHEDULER
 *******************************************************************************/
-#if 0 // daniels scheduler
+#ifdef ESPI_FUNCTION_TEST // daniels scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(70));
-    	//espi_driver_dbg_scan_scs((struct espi_driver *)p);
-    
-	//espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-	//espi_driver_leds_poll_force_write((struct espi_driver *)p);
-//espi_driver_pollbuttons((struct espi_driver *)p);
-espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
-espi_driver_poll_boled_force_write((struct espi_driver *)p);
-espi_driver_ssd1322_poll((struct espi_driver *)p);
-#if 0
+	
+#ifdef ESPI_RIBBON_LED_TEST    
 	espi_driver_rb_leds_poll_force_write((struct espi_driver *)p);
-    espi_driver_poll_soled_force_write((struct espi_driver *)p);// Tut nüscht
-	espi_driver_leds_poll((struct espi_driver *)p);
-	espi_driver_poll_buttons_selection((struct espi_driver *)p);
-	espi_driver_poll_buttons_play((struct espi_driver *)p);
-	espi_driver_poll_buttons_edit((struct espi_driver *)p);
-    espi_driver_encoder_poll((struct espi_driver *)p);
 #endif
-
-	//((struct espi_driver *)p)->poll_stage = (((struct espi_driver *)p)->poll_stage + 1)%8;
+#ifdef ESPI_LED_TEST
+	espi_driver_leds_poll_force_write((struct espi_driver *)p);
+#endif
+#ifdef ESPI_BOLED_TEST
+	espi_driver_poll_boled_force_write((struct espi_driver *)p);
+	espi_driver_ssd1322_poll((struct espi_driver *)p);
+#endif
 }
-#endif
 
 
-#if 1 // nemanjas original scheduler
+#else // nemanjas original scheduler
 static void espi_driver_poll(struct delayed_work *p)
 {
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
@@ -1562,6 +1536,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	struct device_node *dn = dev->dev.of_node; //nni
 
 	printk("espi_driver_probe\n");
+	printk("version 02-12-2014\n");
 
 	sb = devm_kzalloc(&dev->dev,sizeof(struct espi_driver), GFP_KERNEL);
 	if (!sb) {
@@ -1618,14 +1593,14 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	//espi_driver_set_mode(sb, SPI_MODE_0);
 
 	sb->poll_stage = 0;
+
 	espi_driver_buttons_setup(sb);
 	espi_driver_leds_setup(sb);
 	espi_driver_rb_leds_setup(sb);
-	espi_driver_ssd1305_setup(sb);
-	espi_driver_ssd1322_setup(sb);
+	espi_driver_oleds_fb_setup(sb);
 	espi_driver_encoder_setup(sb);
 
-	INIT_DELAYED_WORK(&(sb->work), espi_driver_poll);
+	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
 
 	return ret;
@@ -1639,14 +1614,13 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	printk("espi_driver_remove\n");
 
 	cancel_delayed_work(&(sb->work));
-
+	
 	espi_driver_encoder_cleanup(sb);
-	espi_driver_ssd1322_cleanup(sb);
-	espi_driver_ssd1305_cleanup(sb);
+	espi_driver_oleds_fb_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
 	espi_driver_leds_cleanup(sb);
 	espi_driver_buttons_cleanup(sb);
-	
+		
 	return 0;
 }
 
@@ -1682,9 +1656,9 @@ static s32 __init espi_driver_init( void )
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
     
-	//printk("Registration done. %s - %s \n", __DATE__, __TIME__);
+	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
     
-    printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
+    //printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
     
 
 	return ret;
