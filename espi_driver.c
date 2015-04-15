@@ -668,7 +668,7 @@ static void oleds_fb_update_display(struct oleds_fb_par *par)
 		for(i = 0; i < 128; i++) {
 			tmp = j*132 + i + 4;
 			ssd1305_tmp_buff[tmp] = 0;
-			for(k = 0; k < 7; k++)
+			for(k = 0; k < 8; k++)
 				ssd1305_tmp_buff[tmp] |= ssd1305_rgb_to_mono(buf[offset + k*256]) << k;
 		}
 		offset += 8*256;
