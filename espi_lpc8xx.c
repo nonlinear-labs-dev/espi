@@ -1,5 +1,6 @@
 #include <linux/poll.h>
 #include "espi_driver.h"
+#include "espi_fb.h"
 
 /* Encoder stuff **************************************************************/
 #define ESPI_ENCODER_DEV_MAJOR		308
@@ -146,4 +147,47 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 		}
 	}
 }
+
+void lpc8xx_boled_reset(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 rx_buff[3];
+	u8 tx_buff[3];
+	
+	tx_buff[0] = 0x77;
+	
+	xfer.tx_buf = tx_buff;
+	xfer.rx_buf = rx_buff;
+	xfer.len = 3;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+	
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
+	
+}
+
+void lpc8xx_boled_12v(struct espi_driver *p)
+{
+	struct spi_transfer xfer;
+	u8 rx_buff[3];
+	u8 tx_buff[3];
+	
+	tx_buff[0] = 0x44;
+	
+	xfer.tx_buf = tx_buff;
+	xfer.rx_buf = rx_buff;
+	xfer.len = 3;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
+	
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
+	
+}
+
 

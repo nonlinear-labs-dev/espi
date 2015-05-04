@@ -1,5 +1,5 @@
 #include <linux/uaccess.h>
-
+#include <linux/vmalloc.h>
 #include "espi_driver.h"
 #include "espi_fb.h"
 
@@ -92,6 +92,19 @@ static int oleds_fb_blank(int blank, struct fb_info *info)
 	return 0;
 }
 
+static int oleds_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
+{
+	unsigned long start;
+	u32 len;
+	
+	start	= info->fix.smem_start;
+	len		= info->fix.smem_len;
+	
+	vma->vm_page_prot = __pgprot_modify(vma->vm_page_prot, L_PTE_MT_MASK, L_PTE_MT_WRITETHROUGH);
+	
+	return vm_iomap_memory(vma, start, len);
+}
+
 static struct fb_ops oleds_fb_ops = {
 	.owner 			= THIS_MODULE,
 	.fb_read 		= fb_sys_read,
@@ -102,7 +115,7 @@ static struct fb_ops oleds_fb_ops = {
 	.fb_setcmap		= oleds_fb_setcmap,
 	.fb_setcolreg	= oleds_fb_setcolreg,
 	.fb_blank		= oleds_fb_blank,
-	
+	.fb_mmap		= oleds_fb_mmap,
 };
 
 s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
@@ -125,7 +138,7 @@ s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
 	par->height = 96;
 	
 	vmem_size = par->width * par->height * oleds_fb_var.bits_per_pixel / 8;
-	vmem = (u8 *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, get_order(vmem_size));
+	vmem = (u8 *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, get_order(vmem_size));//vzalloc(vmem_size);//
 	if(!vmem) {
 		ret = -ENOMEM;
 		goto oleds_fb_alloc_error;
@@ -133,6 +146,7 @@ s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
 	
 	info->fbops = &oleds_fb_ops;
 	info->fix	= oleds_fb_fix;
+	
 	info->fix.line_length = par->width * oleds_fb_var.bits_per_pixel / 8;
 	
 	info->var = oleds_fb_var;
@@ -181,7 +195,7 @@ s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
 	
 	ssd1322_fb_deinit();
 	ssd1305_fb_deinit();
-	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));
+	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));//vfree(info->screen_base);//
 	
 	unregister_framebuffer(info);
 	framebuffer_release(info);
