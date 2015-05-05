@@ -7,6 +7,9 @@
 static s8 encoder_delta;
 static DECLARE_WAIT_QUEUE_HEAD(encoder_wqueue);
 
+static u8 tmp_boled_reset = 0;
+static u8 tmp_boled_12v = 0;
+
 /*******************************************************************************
     encoder functions
 *******************************************************************************/
@@ -16,6 +19,16 @@ static ssize_t encoder_fops_write(   struct file *filp,
                                     loff_t *f_pos)
 {
 	ssize_t status = 0;
+	
+	if(buf[0] == 'a') {
+		tmp_boled_reset = 1;
+	}
+	else if(buf[0] == 'b') {
+		tmp_boled_12v = 1;
+	}
+	
+	status = count;
+	
 	return status;
 }
 
@@ -146,6 +159,18 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 			wake_up_interruptible(&encoder_wqueue);
 		}
 	}
+	
+	
+#if 1
+	if(tmp_boled_reset) {
+		lpc8xx_boled_reset(p);
+		tmp_boled_reset = 0;
+	}
+	if(tmp_boled_12v) {
+		lpc8xx_boled_12v(p);
+		tmp_boled_12v = 0;
+	}
+#endif
 }
 
 void lpc8xx_boled_reset(struct espi_driver *p)
