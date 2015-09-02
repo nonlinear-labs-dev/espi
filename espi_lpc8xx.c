@@ -134,7 +134,8 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	u8 tmp;
 
 	tx_buff[0] = 0xAA;
-	
+
+#if 0	
 	xfer.tx_buf = tx_buff;
 	xfer.rx_buf = rx_buff;
 	xfer.len = 3;
@@ -149,11 +150,33 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	tmp = rx_buff[0] & rx_buff[1] & rx_buff[2];
 	if(tmp == 0xFF)
 		return;
+#else
+	xfer.tx_buf = tx_buff;
+	xfer.rx_buf = rx_buff;
+	xfer.len = 1;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = ESPI_SPI_SPEED;
 	
-	if(rx_buff[2] != 0 ) {
-		if (!(encoder_delta + (s8)rx_buff[2] > 127) &&
-		    !(encoder_delta + (s8)rx_buff[2] < -128)) {
-			encoder_delta += (s8) rx_buff[2];
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
+	tmp = rx_buff[0];
+	
+	tx_buff[0] = 0;
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
+	tmp &= rx_buff[0];
+	if(tmp == 0xFF)
+		return;
+#endif
+	
+	//if(rx_buff[2] != 0 ) {
+	if(rx_buff[0] != 0 ) {
+		if (!(encoder_delta + (s8)rx_buff[0] > 127) &&
+		    !(encoder_delta + (s8)rx_buff[0] < -128)) {
+			encoder_delta += (s8) rx_buff[0];
 
 			//printk("encoder delta: %d\n", (s8)encoder_delta);
 			wake_up_interruptible(&encoder_wqueue);
