@@ -139,7 +139,8 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	struct device_node *dn = dev->dev.of_node; //nni
 
 	printk("espi_driver_probe\n");
-	printk("version 21-04-2014\n");
+	printk("version %s\n", __DATE__);
+	printk("Hanswurscht\n");
 
 	sb = devm_kzalloc(&dev->dev,sizeof(struct espi_driver), GFP_KERNEL);
 	if (!sb) {
