@@ -36,7 +36,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 	s32 s;
 	u8 i;
 
-	gpio_set_value(spi->gpio_dmx, 1);	            // dmxs disable: avoid glitches
+	gpio_set_value(spi->gpio_dmx, 0);	            // dmxs disable: avoid glitches
 
 	if(device == 1 || device == 3)
 		s = 0;
@@ -48,7 +48,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		device = 3;
 		port = 7;				// disable all - select unused port
 	} else {
-		gpio_set_value(spi->gpio_dmx, 0);	        // dmxs enable
+		gpio_set_value(spi->gpio_dmx, 1);	        // dmxs enable
 		return;
 	}
 
@@ -62,7 +62,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		s += 3;
 	} while( (s <= 3) && (device == 3));
 	
-	gpio_set_value(spi->gpio_dmx, 0);	            // dmxs enable
+	gpio_set_value(spi->gpio_dmx, 1);	            // dmxs enable
 }
 
 s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfer)
