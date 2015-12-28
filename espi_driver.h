@@ -24,6 +24,13 @@
 #define ESPI_PLAY_BUTTONS_DEVICE	1
 #define ESPI_PLAY_SOLED_DEVICE		2
 
+#define ESPI_EPC_CTRL_STATE_PORT	4
+#define ESPI_EPC_CONTROL_DEVICE		1
+#define ESPI_EPC_STATE_DEVICE		2
+
+#define ESPI_MAIN_CONTROL_PORT		5
+#define ESPI_MAIN_CONTROL_DEVICE	1
+
 struct oleds_fb_par;
 
 struct espi_driver {
@@ -74,6 +81,15 @@ void espi_driver_pollbuttons(struct espi_driver *p);
 s32 espi_driver_leds_setup(struct espi_driver *sb);
 s32 espi_driver_leds_cleanup(struct espi_driver *sb);
 void espi_driver_leds_poll(struct espi_driver *p);
+/*** ePC control and status ***/
+s32 espi_driver_epc_ctrl_setup(struct espi_driver *sb);
+s32 espi_driver_epc_ctrl_cleanup(struct espi_driver *sb);
+void espi_driver_epc_control_poll(struct espi_driver *p);
+void espi_driver_epc_status_poll(struct espi_driver *p);
+/*** main cpu board control ***/
+s32 espi_driver_main_ctrl_setup(struct espi_driver *sb);
+s32 espi_driver_main_ctrl_cleanup(struct espi_driver *sb);
+void espi_driver_main_ctrl_poll(struct espi_driver *p);
 
 #endif
 
