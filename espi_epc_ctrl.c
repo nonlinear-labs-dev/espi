@@ -88,6 +88,10 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 txbuff[1];
 	
+	if(update == 0)
+		return;
+	update = 0;
+	
 	txbuff[0] = epc_ctrl;
 	
 	xfer.tx_buf = txbuff;
