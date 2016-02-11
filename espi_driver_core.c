@@ -288,7 +288,6 @@ module_exit(espi_driver_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Nemanja Nikodijevic");
 MODULE_DESCRIPTION("espi_driver");
-MODULE_VERSION("0.1");
-
+MODULE_VERSION(__DATE__ " " __TIME__ " SHA1=" NL_VERSION);
 
 

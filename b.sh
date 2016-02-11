@@ -6,7 +6,7 @@ if [[ -z ${CROSS_COMPILE} ]]; then
 fi
 
 if [[ -z ${KSRC} ]]; then
-	echo You have to set \$KSRC to point to your kernel sourcetree, in order to usre this buildscript!
+	echo You have to set \$KSRC to point to your kernel sourcetree, in order to use this buildscript!
 	exit -1
 fi
 
