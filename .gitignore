@@ -1,3 +1,9 @@
 Module.symvers
 espi_driver.ko
 espi_driver.mod.c
+./.*
+*.o
+*.o.cmd
+*ko.cmd
+.tmp_versions
+modules.order
