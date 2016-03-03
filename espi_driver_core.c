@@ -102,11 +102,7 @@ s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 
 static void espi_driver_poll(struct delayed_work *p)
 {
-	static bool work_in_progress = false;
-
 	queue_delayed_work(workqueue, p, msecs_to_jiffies(8));
-
-	BUG_ON(work_in_progress);
 
 	switch(((struct espi_driver *)p)->poll_stage)
 	{
@@ -114,30 +110,22 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 2:
 	case 4:
 	case 6:
-		work_in_progress = true;
 		espi_driver_pollbuttons((struct espi_driver *)p);
 		espi_driver_encoder_poll((struct espi_driver *)p);
 		//espi_driver_epc_status_poll((struct espi_driver *)p);
-		work_in_progress = false;
 		break;
 	case 1:
 	case 5:
-		work_in_progress = true;
 		espi_driver_leds_poll((struct espi_driver *)p);
 		//espi_driver_rb_leds_poll((struct espi_driver *)p);
 		espi_driver_epc_control_poll((struct espi_driver *)p);
 		espi_driver_main_ctrl_poll((struct espi_driver *)p);
-		work_in_progress = false;
 		break;
 	case 3:
-		work_in_progress = true;
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
-		work_in_progress = false;
 		break;
 	case 7:
-		work_in_progress = true;
 		espi_driver_ssd1322_poll((struct espi_driver *)p);
-		work_in_progress = false;
 		break;
 	}
 
