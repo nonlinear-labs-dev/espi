@@ -1,0 +1,3 @@
+Module.symvers
+espi_driver.ko
+espi_driver.mod.c
