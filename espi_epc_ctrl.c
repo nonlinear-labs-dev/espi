@@ -3,8 +3,8 @@
 #include "espi_driver.h"
 
 #define ESPI_EPC_CTRL_DEV_MAJOR		320
-static u8 epc_ctrl, epc_new_ctrl;
-static u8 epc_stat;
+
+static u8 epc_ctrl, epc_new_ctrl, epc_stat;
 
 /*******************************************************************************
     epc ctrl functions
@@ -56,8 +56,12 @@ static struct class *epc_ctrl_class;
 s32 espi_driver_epc_ctrl_setup(struct espi_driver *sb)
 {
 	s32 ret;
-	
-	epc_ctrl = epc_new_ctrl = epc_stat = 0;
+
+	/* Start condition has to be like this, in order to control epc properly */
+	epc_ctrl = 1;
+	epc_new_ctrl = 0;
+
+	epc_stat = 0;
 	
 	ret = register_chrdev(ESPI_EPC_CTRL_DEV_MAJOR, "spi", &epc_ctrl_fops);
 	if (ret < 0)
@@ -85,7 +89,7 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u8 update = 0;
-	
+
 	if(epc_ctrl != epc_new_ctrl)
 		update = 1;
 	
@@ -93,7 +97,6 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 		return;
 	
 	epc_ctrl = epc_new_ctrl;
-	
 	xfer.tx_buf = &epc_ctrl;
 	xfer.rx_buf = NULL;
 	xfer.len = 1;
