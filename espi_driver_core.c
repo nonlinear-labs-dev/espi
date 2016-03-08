@@ -112,12 +112,12 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 6:
 		espi_driver_pollbuttons((struct espi_driver *)p);
 		espi_driver_encoder_poll((struct espi_driver *)p);
-		//espi_driver_epc_status_poll((struct espi_driver *)p);
+		espi_driver_epc_status_poll((struct espi_driver *)p);
 		break;
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
-		//espi_driver_rb_leds_poll((struct espi_driver *)p);
+		espi_driver_rb_leds_poll((struct espi_driver *)p);
 		espi_driver_epc_control_poll((struct espi_driver *)p);
 		espi_driver_main_ctrl_poll((struct espi_driver *)p);
 		break;
