@@ -62,7 +62,7 @@ s32 espi_driver_epc_ctrl_setup(struct espi_driver *sb)
 	epc_new_ctrl = 0;
 
 	epc_stat = 0;
-	
+
 	ret = register_chrdev(ESPI_EPC_CTRL_DEV_MAJOR, "spi", &epc_ctrl_fops);
 	if (ret < 0)
 		pr_err("%s: problem at register_chrdev\n", __func__);
@@ -81,7 +81,7 @@ s32 espi_driver_epc_ctrl_cleanup(struct espi_driver *sb)
 	device_destroy(epc_ctrl_class, MKDEV(ESPI_EPC_CTRL_DEV_MAJOR, 0));
 	class_destroy(epc_ctrl_class);
 	unregister_chrdev(ESPI_EPC_CTRL_DEV_MAJOR, "spi");
-	
+
 	return 0;
 }
 
@@ -92,10 +92,10 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 
 	if(epc_ctrl != epc_new_ctrl)
 		update = 1;
-	
+
 	if(update == 0)
 		return;
-	
+
 	epc_ctrl = epc_new_ctrl;
 	xfer.tx_buf = &epc_ctrl;
 	xfer.rx_buf = NULL;
@@ -115,24 +115,24 @@ void espi_driver_epc_status_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u8 rxbuff[1];
-	
+
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rxbuff;
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
-	
+
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EPC_CTRL_STATE_PORT, ESPI_EPC_STATE_DEVICE);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EPC_CTRL_STATE_PORT, 0);
-	
+
 	epc_stat = rxbuff[0];
-	
+
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_0);
 }
 

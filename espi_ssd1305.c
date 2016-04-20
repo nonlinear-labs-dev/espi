@@ -37,14 +37,14 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 	struct spi_transfer xfer;
 	s32 i;
 	struct espi_driver *sb = par->espi;
-	
+
 	ssd1305_buff = kcalloc(SSD1305_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
 	if (!ssd1305_buff)
 		return -ENOMEM;
 	ssd1305_tmp_buff = kcalloc(SSD1305_BUFF_SIZE,sizeof(u8), GFP_KERNEL);
 	if (!ssd1305_tmp_buff)
 		return -ENOMEM;
-	
+
 	/** DISPLAY INITIALIZATION *************/
 	i = 0;
 
@@ -77,14 +77,14 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 	ssd1305_buff[i++] = SSD1305_SET_COL_HI;
 	ssd1305_buff[i++] = SSD1305_SET_COL_LO;
 	ssd1305_buff[i++] = SSD1305_DISP_ON;
-	
+
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
 	xfer.len = i;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	gpio_set_value(sb->gpio_sap, 0);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(sb->spidev, &xfer);
@@ -93,14 +93,14 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 
 	for(i=0; i<SSD1305_BUFF_SIZE; i++)
 		ssd1305_buff[i] = ssd1305_tmp_buff[i] = 0;
-		
+
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
 	xfer.len = SSD1305_BUFF_SIZE;
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(sb->spidev, &xfer);
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
-	
+
 	return 0;
 }
 
@@ -124,7 +124,7 @@ void ssd1305_update_display(struct oleds_fb_par *par)
 	u16* buf =  (u16*) (par->info->screen_base);
 	u32 offset = SSD1305_FB_OFFSET;
 	u32 tmp;
-	
+
 	mutex_lock(&ssd1305_tmp_buff_lock);
 	for(j = 0; j < 4; j++) {
 		for(i = 0; i < 128; i++) {
@@ -145,7 +145,7 @@ void espi_driver_ssd1305_poll(struct espi_driver *p)
 	u8 update = 0;
 
 	ssd1305_update_display(p->oleds);
-	
+
 	mutex_lock(&ssd1305_tmp_buff_lock);
 	for(i=0; i<SSD1305_BUFF_SIZE; i++) {
 		if(ssd1305_buff[i] ^ ssd1305_tmp_buff[i]) {
@@ -154,17 +154,17 @@ void espi_driver_ssd1305_poll(struct espi_driver *p)
 		}
 	}
 	mutex_unlock(&ssd1305_tmp_buff_lock);
-	
+
 	if(update == 0)
 		return;
-	
+
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
 	xfer.len = SSD1305_BUFF_SIZE;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);

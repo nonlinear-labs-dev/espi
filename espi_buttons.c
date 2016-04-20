@@ -5,7 +5,7 @@
 #define ESPI_BUTTON_DEV_MAJOR		302
 #define BUTTON_BYTES_GENERAL_PANELS	12
 #define BUTTON_BYTES_CENTRAL_PANEL	3
-#define BUTTON_BYTES_SOLED_PANEL	1	
+#define BUTTON_BYTES_SOLED_PANEL	1
 #define BUTTON_STATES_SIZE		16
 static u8 *btn_sm1;
 static u8 *btn_st;
@@ -18,9 +18,9 @@ static DECLARE_WAIT_QUEUE_HEAD(btn_wqueue);
 /*******************************************************************************
     buttons functions
 *******************************************************************************/
-static ssize_t buttons_fops_write(   struct file *filp, 
-                                const char __user *buf, 
-                                size_t count, 
+static ssize_t buttons_fops_write(   struct file *filp,
+                                const char __user *buf,
+                                size_t count,
                                 loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -178,7 +178,7 @@ void espi_driver_pollbuttons(struct espi_driver *p)
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
-      
+
       	/***** MASKING ******/
 	//rx[BUTTON_BYTES_GENERAL_PANELS + 1] |= 0x30;
 	rx[BUTTON_BYTES_GENERAL_PANELS + BUTTON_BYTES_CENTRAL_PANEL] |= 0x0F;
@@ -204,7 +204,7 @@ void espi_driver_pollbuttons(struct espi_driver *p)
 					wake_up_interruptible(&btn_wqueue);
 				}
 				//printk("button-change = %x\n", btn_id);
-			}	
+			}
 		}
 		btn_sm1[i] = rx[i];
 	}

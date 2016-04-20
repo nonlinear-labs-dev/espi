@@ -9,9 +9,9 @@ static u8 *rb_led_new_st;
 /*******************************************************************************
     ribbon leds functions
 *******************************************************************************/
-static ssize_t rbled_write( struct file *filp, 
-                            const char __user *buf, 
-                            size_t count, 
+static ssize_t rbled_write( struct file *filp,
+                            const char __user *buf,
+                            size_t count,
                             loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -23,7 +23,7 @@ static ssize_t rbled_write( struct file *filp,
 		led_id = buf[i];
 		val = rot[buf[i+1] & 0x3];
 
-		rb_led_new_st[RIBBON_LED_STATES_SIZE - 1 - led_id/4] &= ~(0x3 << ((led_id%4)*2)); 
+		rb_led_new_st[RIBBON_LED_STATES_SIZE - 1 - led_id/4] &= ~(0x3 << ((led_id%4)*2));
 		rb_led_new_st[RIBBON_LED_STATES_SIZE - 1 - led_id/4] |= val << ((led_id%4)*2);
 	}
 	status = count;
@@ -122,7 +122,7 @@ void espi_driver_rb_leds_poll(struct espi_driver *p)
 	xfer.speed_hz = ESPI_SPI_SPEED;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
-	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);	
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, 0);

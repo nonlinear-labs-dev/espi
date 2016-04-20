@@ -2,7 +2,7 @@
 #define _ESPI_DRIVER_H_
 
 #include <linux/spi/spi.h>
-#include <linux/fb.h> 
+#include <linux/fb.h>
 
 #define ESPI_SPI_SPEED	1000000
 
@@ -42,7 +42,7 @@ struct espi_driver {
 	s32 gpio_scs[ESPI_SCS_NUM];
 	s32 gpio_sap;
 	s32 gpio_dmx;
-	
+
 	//framebuffer params
 	struct oleds_fb_par* oleds;
 

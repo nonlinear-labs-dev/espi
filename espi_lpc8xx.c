@@ -13,28 +13,28 @@ static u8 tmp_boled_12v = 0;
 /*******************************************************************************
     encoder functions
 *******************************************************************************/
-static ssize_t encoder_fops_write(   struct file *filp, 
-                                    const char __user *buf, 
-                                    size_t count, 
+static ssize_t encoder_fops_write(   struct file *filp,
+                                    const char __user *buf,
+                                    size_t count,
                                     loff_t *f_pos)
 {
 	ssize_t status = 0;
-	
+
 	if(buf[0] == 'a') {
 		tmp_boled_reset = 1;
 	}
 	else if(buf[0] == 'b') {
 		tmp_boled_12v = 1;
 	}
-	
+
 	status = count;
-	
+
 	return status;
 }
 
-static ssize_t encoder_fops_read(    struct file *filp, 
-                                    char __user *buf, 
-                                    size_t count, 
+static ssize_t encoder_fops_read(    struct file *filp,
+                                    char __user *buf,
+                                    size_t count,
                                     loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -47,10 +47,10 @@ static ssize_t encoder_fops_read(    struct file *filp,
 	if ((status = wait_event_interruptible(encoder_wqueue, encoder_delta != 0)))
 		return status;
 
-    /**@todo:   find a solution for cases, where playground crashes, 
-                user turn on rotary like crazy, playground restarts and e.g. 
+    /**@todo:   find a solution for cases, where playground crashes,
+                user turn on rotary like crazy, playground restarts and e.g.
                 volume jumps to max. */
-	
+
     buf[0] = encoder_delta;
 	encoder_delta = 0;
 	status = 1;
@@ -101,7 +101,7 @@ static struct class *encoder_class;
 s32 espi_driver_encoder_setup(struct espi_driver *sb)
 {
 	s32 ret;
-	
+
 	encoder_delta = 0;
 
 	ret = register_chrdev(ESPI_ENCODER_DEV_MAJOR, "spi", &encoder_fops);
@@ -135,18 +135,18 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 
 	tx_buff[0] = 0xAA;
 
-#if 0	
+#if 0
 	xfer.tx_buf = tx_buff;
 	xfer.rx_buf = rx_buff;
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
-	
+
 	tmp = rx_buff[0] & rx_buff[1] & rx_buff[2];
 	if(tmp == 0xFF)
 		return;
@@ -157,12 +157,12 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
 	tmp = rx_buff[0];
-	
+
 	tx_buff[0] = 0;
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
@@ -171,7 +171,7 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	if(tmp == 0xFF)
 		return;
 #endif
-	
+
 	//if(rx_buff[2] != 0 ) {
 	if(rx_buff[0] != 0 ) {
 		if (!(encoder_delta + (s8)rx_buff[0] > 127) &&
@@ -182,8 +182,8 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 			wake_up_interruptible(&encoder_wqueue);
 		}
 	}
-	
-	
+
+
 #if 1
 	if(tmp_boled_reset) {
 		lpc8xx_boled_reset(p);
@@ -201,20 +201,20 @@ void lpc8xx_boled_reset(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
-	
+
 	tx_buff[0] = 0x77;
-	
+
 	xfer.tx_buf = tx_buff;
 	xfer.rx_buf = rx_buff;
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
-	
+
 }
 
 void lpc8xx_boled_12v(struct espi_driver *p)
@@ -222,20 +222,20 @@ void lpc8xx_boled_12v(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
-	
+
 	tx_buff[0] = 0x44;
-	
+
 	xfer.tx_buf = tx_buff;
 	xfer.rx_buf = rx_buff;
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
 	xfer.speed_hz = ESPI_SPI_SPEED;
-	
+
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, 0);
-	
+
 }
 
 

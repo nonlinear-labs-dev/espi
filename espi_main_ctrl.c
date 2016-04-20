@@ -53,9 +53,9 @@ static struct class *main_ctrl_class;
 s32 espi_driver_main_ctrl_setup(struct espi_driver *sb)
 {
 	s32 ret;
-	
+
 	main_ctrl = 0;
-	
+
 	ret = register_chrdev(ESPI_MAIN_CTRL_DEV_MAJOR, "spi", &main_ctrl_fops);
 	if (ret < 0)
 		pr_err("%s: problem at register_chrdev\n", __func__);
@@ -74,7 +74,7 @@ s32 espi_driver_main_ctrl_cleanup(struct espi_driver *sb)
 	device_destroy(main_ctrl_class, MKDEV(ESPI_MAIN_CTRL_DEV_MAJOR, 0));
 	class_destroy(main_ctrl_class);
 	unregister_chrdev(ESPI_MAIN_CTRL_DEV_MAJOR, "spi");
-	
+
 	return 0;
 }
 
@@ -82,13 +82,13 @@ void espi_driver_main_ctrl_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u8 txbuff[1];
-	
+
 	if(update == 0)
 		return;
 	update = 0;
-	
+
 	txbuff[0] = main_ctrl;
-	
+
 	xfer.tx_buf = txbuff;
 	xfer.rx_buf = NULL;
 	xfer.len = 1;

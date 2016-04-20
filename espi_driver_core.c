@@ -19,7 +19,7 @@
 
 #include <linux/time.h>
 #include <linux/hrtimer.h>
-#include <linux/hardirq.h> 
+#include <linux/hardirq.h>
 
 #include "espi_driver.h"
 
@@ -61,7 +61,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		}
 		s += 3;
 	} while( (s <= 3) && (device == 3));
-	
+
 	gpio_set_value(spi->gpio_dmx, 1);	            // dmxs enable
 }
 
@@ -69,7 +69,7 @@ s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfer)
 {
 	struct spi_message msg;
 	s32 status;
-	
+
 	xfer->tx_nbits = xfer->rx_nbits = SPI_NBITS_SINGLE;
 
 	spi_message_init(&msg);
@@ -194,8 +194,8 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	sb->dev = &dev->dev;
 	dev_set_drvdata(&dev->dev, (void*)sb);
 	dev_info(&dev->dev, "spi registered, item=0x%p\n", (void *)sb);
-	
-	
+
+
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	//espi_driver_set_mode(sb, SPI_MODE_0);
 
@@ -223,7 +223,7 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	printk("espi_driver_remove\n");
 
 	cancel_delayed_work(&(sb->work));
-	
+
 	espi_driver_main_ctrl_cleanup(sb);
 	espi_driver_epc_ctrl_cleanup(sb);
 	espi_driver_encoder_cleanup(sb);
@@ -231,7 +231,7 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	espi_driver_rb_leds_cleanup(sb);
 	espi_driver_leds_cleanup(sb);
 	espi_driver_buttons_cleanup(sb);
-		
+
 	return 0;
 }
 
@@ -266,11 +266,11 @@ static s32 __init espi_driver_init( void )
 	if (ret)
 		pr_err("%s: problem at spi_register_driver\n", __func__);
 
-    
+
 	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
-    
+
     //printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
-    
+
 
 	return ret;
 }
