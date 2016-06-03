@@ -1,4 +1,5 @@
 #include <linux/of_gpio.h>
+#include <asm/uaccess.h>
 #include "espi_driver.h"
 
 #define ESPI_LED_DEV_MAJOR		301
@@ -7,49 +8,34 @@ static u8 *led_st;
 static u8 *led_new_st;
 static DEFINE_MUTEX(led_state_lock);
 
-/*******************************************************************************
-    led functions
-*******************************************************************************/
 static ssize_t led_fops_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
-	ssize_t status = 0;
 	u32 i;
 	u8 val, led_id;
+	u8 tmp[count];
+
+	if (copy_from_user(tmp, buf, count))
+		return -EFAULT;
 
 	mutex_lock(&led_state_lock);
 	for(i=0; i<count; i++) {
-		//val = (buf[i] >> 7) & 0x1;
-		val = buf[i] >> 7;
-		led_id = buf[i] & 0x7F;
+		val = tmp[i] >> 7;
+		led_id = tmp[i] & 0x7F;
 
 		if(val == 0)
-			led_new_st[LED_STATES_SIZE - 1 -led_id/8] &= ~(1<<(led_id%8));
+			led_new_st[LED_STATES_SIZE - 1 - led_id / 8] &= ~(1<<(led_id%8));
 		else if(val == 1)
-			led_new_st[LED_STATES_SIZE - 1 -led_id/8] |= 1<<(led_id%8);
+			led_new_st[LED_STATES_SIZE - 1 - led_id / 8] |= 1<<(led_id%8);
 	}
 	mutex_unlock(&led_state_lock);
-	status = count;
-	return status;
-}
 
-static ssize_t led_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
-static s32 led_fops_release(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	return status;
+	return count;
 }
 
 static const struct file_operations led_fops = {
 		.owner = 	THIS_MODULE,
 		.write = 	led_fops_write,
-		.read =		led_fops_read,
 		.open =		nonseekable_open,
-		.release = 	led_fops_release,
 		.llseek = 	no_llseek,
 };
 

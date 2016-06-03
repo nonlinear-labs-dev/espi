@@ -15,18 +15,6 @@ static u32 btn_buff_head, btn_buff_tail;
 static DEFINE_MUTEX(btn_buff_tail_lock);
 static DECLARE_WAIT_QUEUE_HEAD(btn_wqueue);
 
-/*******************************************************************************
-    buttons functions
-*******************************************************************************/
-static ssize_t buttons_fops_write(   struct file *filp,
-                                const char __user *buf,
-                                size_t count,
-                                loff_t *f_pos)
-{
-	ssize_t status = 0;
-	return status;
-}
-
 static ssize_t buttons_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
@@ -50,19 +38,6 @@ static ssize_t buttons_fops_read(struct file *filp, char __user *buf, size_t cou
 	return status;
 }
 
-static int buttons_fops_open(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
-static int buttons_fops_release(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	return status;
-}
-
 static unsigned int buttons_fops_poll(struct file *filp, poll_table *wait)
 {
 
@@ -80,10 +55,8 @@ static unsigned int buttons_fops_poll(struct file *filp, poll_table *wait)
 
 static const struct file_operations buttons_fops = {
 		.owner = 	THIS_MODULE,
-		.write = 	buttons_fops_write,
 		.read =		buttons_fops_read,
-		.open =		buttons_fops_open,
-		.release = 	buttons_fops_release,
+		.open =		nonseekable_open,
 		.llseek = 	no_llseek,
 		.poll =		buttons_fops_poll,
 };

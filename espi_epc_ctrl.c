@@ -1,22 +1,23 @@
-#include <linux/poll.h>
 #include <linux/of_gpio.h>
+#include <linux/poll.h>
+#include <asm/uaccess.h>
 #include "espi_driver.h"
 
 #define ESPI_EPC_CTRL_DEV_MAJOR		320
 
 static u8 epc_ctrl, epc_new_ctrl, epc_stat;
 
-/*******************************************************************************
-    epc ctrl functions
-*******************************************************************************/
 static ssize_t epc_ctrl_fops_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
-	ssize_t status = 0;
-	if(count < 1)
-		return -EAGAIN;
-	epc_new_ctrl = buf[0];
-	status = count;
-	return status;
+	u32 i;
+	u8 tmp[count];
+
+	if (copy_from_user(tmp, buf, count))
+		return -EINVAL;
+
+	epc_new_ctrl = tmp[count-1];
+
+	return count;
 }
 
 static ssize_t epc_ctrl_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
@@ -26,13 +27,6 @@ static ssize_t epc_ctrl_fops_read(struct file *filp, char __user *buf, size_t co
 		return -EAGAIN;
 	buf[0] = epc_stat;
 	status = 1;
-	return status;
-}
-
-static s32 epc_ctrl_fops_open(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	nonseekable_open(inode, filp);
 	return status;
 }
 
@@ -46,7 +40,7 @@ static const struct file_operations epc_ctrl_fops = {
 		.owner = 	THIS_MODULE,
 		.write = 	epc_ctrl_fops_write,
 		.read =		epc_ctrl_fops_read,
-		.open =		epc_ctrl_fops_open,
+		.open =		nonseekable_open,
 		.release = 	epc_ctrl_fops_release,
 		.llseek = 	no_llseek,
 };
