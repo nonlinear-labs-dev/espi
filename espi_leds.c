@@ -38,13 +38,6 @@ static ssize_t led_fops_read(struct file *filp, char __user *buf, size_t count, 
 	return status;
 }
 
-static s32 led_fops_open(struct inode *inode, struct file *filp)
-{
-	s32 status = 0;
-	nonseekable_open(inode, filp);
-	return status;
-}
-
 static s32 led_fops_release(struct inode *inode, struct file *filp)
 {
 	s32 status = 0;
@@ -55,7 +48,7 @@ static const struct file_operations led_fops = {
 		.owner = 	THIS_MODULE,
 		.write = 	led_fops_write,
 		.read =		led_fops_read,
-		.open =		led_fops_open,
+		.open =		nonseekable_open,
 		.release = 	led_fops_release,
 		.llseek = 	no_llseek,
 };
@@ -66,15 +59,13 @@ s32 espi_driver_leds_setup(struct espi_driver *sb)
 {
 	s32 i, ret;
 
-	led_st = kcalloc(LED_STATES_SIZE,sizeof(u8), GFP_KERNEL);
+	led_st = kcalloc(LED_STATES_SIZE, sizeof(u8), GFP_KERNEL);
 	if (!led_st)
 		return -ENOMEM;
-	led_new_st = kcalloc(LED_STATES_SIZE,sizeof(u8), GFP_KERNEL);
+
+	led_new_st = kcalloc(LED_STATES_SIZE, sizeof(u8), GFP_KERNEL);
 	if (!led_new_st)
 		return -ENOMEM;
-
-	for(i=0; i<LED_STATES_SIZE; i++)
-		led_new_st[i] = led_st[i] = 0;
 
 	ret = register_chrdev(ESPI_LED_DEV_MAJOR, "spi", &led_fops);
 	if (ret < 0)
