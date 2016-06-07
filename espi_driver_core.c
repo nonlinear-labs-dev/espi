@@ -23,6 +23,8 @@
 
 #include "espi_driver.h"
 
+int espi_spi_speed;
+
 static struct workqueue_struct *workqueue;
 
 /*******************************************************************************
@@ -86,12 +88,14 @@ s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 	struct spi_transfer xfer;
 	u8 tx = 0;
 
+	extern int espi_spi_speed;
+
 	xfer.tx_buf = &tx;
 	xfer.rx_buf = NULL;
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	dev->mode = mode;
 	status = spi_setup(dev);
@@ -248,11 +252,15 @@ static struct spi_driver espi_driver_driver = {
 		//.resume = espi_driver_resume,
 };
 
+module_param(espi_spi_speed, int, 0644);
+MODULE_PARM_DESC(espi_spi_speed, "Speed in Hz of the eSPI bus");
 
-// **************************************************************************
+
 static s32 __init espi_driver_init( void )
 {
 	s32 ret;
+
+	espi_spi_speed = 1000000;
 
 	printk("espi_driver_init --\n");
 

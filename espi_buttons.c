@@ -116,12 +116,14 @@ void espi_driver_pollbuttons(struct espi_driver *p)
 	u8 rx[BUTTON_STATES_SIZE];
 	u8 i, j, xor, bit, btn_id;
 
+	extern int espi_spi_speed;
+
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rx;
 	xfer.len = BUTTON_BYTES_GENERAL_PANELS;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
 

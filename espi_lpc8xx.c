@@ -132,6 +132,7 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	u8 rx_buff[3];
 	u8 tx_buff[3];
 	u8 tmp;
+	extern int espi_spi_speed;
 
 	tx_buff[0] = 0xAA;
 
@@ -141,7 +142,7 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
@@ -156,7 +157,7 @@ void espi_driver_encoder_poll(struct espi_driver *p)
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
@@ -201,6 +202,7 @@ void lpc8xx_boled_reset(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
+	extern int espi_spi_speed;
 
 	tx_buff[0] = 0x77;
 
@@ -209,7 +211,7 @@ void lpc8xx_boled_reset(struct espi_driver *p)
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
@@ -222,6 +224,7 @@ void lpc8xx_boled_12v(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rx_buff[3];
 	u8 tx_buff[3];
+	extern int espi_spi_speed;
 
 	tx_buff[0] = 0x44;
 
@@ -230,7 +233,7 @@ void lpc8xx_boled_12v(struct espi_driver *p)
 	xfer.len = 3;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_ENCODER_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);

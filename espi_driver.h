@@ -4,8 +4,6 @@
 #include <linux/spi/spi.h>
 #include <linux/fb.h>
 
-#define ESPI_SPI_SPEED	1000000
-
 #define ESPI_SCS_NUM	6
 
 #define ESPI_EDIT_PANEL_PORT		0

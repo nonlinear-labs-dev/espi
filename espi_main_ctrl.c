@@ -82,6 +82,7 @@ void espi_driver_main_ctrl_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u8 txbuff[1];
+	extern int espi_spi_speed;
 
 	if(update == 0)
 		return;
@@ -94,7 +95,7 @@ void espi_driver_main_ctrl_poll(struct espi_driver *p)
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = ESPI_SPI_SPEED;
+	xfer.speed_hz = espi_spi_speed;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_MAIN_CONTROL_PORT, ESPI_MAIN_CONTROL_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
