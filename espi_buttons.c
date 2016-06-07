@@ -18,6 +18,7 @@ static DECLARE_WAIT_QUEUE_HEAD(btn_wqueue);
 static ssize_t buttons_fops_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
 	ssize_t status = 0;
+	u8 tmp;
 
 	/* If in non-blocking mode and no data to read, return */
 	if (filp->f_flags & O_NONBLOCK && btn_buff_head == btn_buff_tail)
@@ -30,12 +31,14 @@ static ssize_t buttons_fops_read(struct file *filp, char __user *buf, size_t cou
 	mutex_lock(&btn_buff_tail_lock);
 
 	// xor 0x80, so we get 1 on btn down and 0 on btn up
-	buf[0] = button_buff[btn_buff_tail] ^ 0x80;
+	tmp = button_buff[btn_buff_tail] ^ 0x80;
+	if (copy_to_user(buf, &tmp, 1) != 0)
+		return -EFAULT;
+
 	btn_buff_tail = (btn_buff_tail+1)%BUTTON_BUFFER_SIZE;
-	status = 1;
 	mutex_unlock(&btn_buff_tail_lock);
 
-	return status;
+	return 1;
 }
 
 static unsigned int buttons_fops_poll(struct file *filp, poll_table *wait)
@@ -178,7 +181,7 @@ void espi_driver_pollbuttons(struct espi_driver *p)
 					btn_buff_head = (btn_buff_head+1)%BUTTON_BUFFER_SIZE;
 					wake_up_interruptible(&btn_wqueue);
 				}
-				//printk("button-change = %x\n", btn_id);
+				printk("button-change = %x\n", btn_id);
 			}
 		}
 		btn_sm1[i] = rx[i];

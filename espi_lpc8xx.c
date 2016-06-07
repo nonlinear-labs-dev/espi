@@ -51,11 +51,14 @@ static ssize_t encoder_fops_read(    struct file *filp,
                 user turn on rotary like crazy, playground restarts and e.g.
                 volume jumps to max. */
 
-    buf[0] = encoder_delta;
-	encoder_delta = 0;
-	status = 1;
+	if (copy_to_user(buf, &encoder_delta, 1) != 0)
+		goto out;
 
-	return status;
+	encoder_delta = 0;
+	return 1;
+out:
+
+	return -EFAULT;
 }
 
 static s32 encoder_fops_open(struct inode *inode, struct file *filp)

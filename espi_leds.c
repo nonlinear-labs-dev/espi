@@ -17,6 +17,8 @@ static ssize_t led_fops_write(struct file *filp, const char __user *buf, size_t 
 	if (copy_from_user(tmp, buf, count))
 		return -EFAULT;
 
+	printk("Led.. %02X", tmp);
+
 	mutex_lock(&led_state_lock);
 	for(i=0; i<count; i++) {
 		val = tmp[i] >> 7;

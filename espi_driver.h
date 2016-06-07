@@ -16,10 +16,8 @@
 #define ESPI_SELECTION_LEDS_DEVICE	1
 
 #define ESPI_RIBBON_LEDS_PORT		3
-#define ESPI_RIBBON_LEDS_DEVICE		1
 
 #define ESPI_PLAY_PANEL_PORT		3
-#define ESPI_PLAY_BUTTONS_DEVICE	3
 #define ESPI_PLAY_SOLED_DEVICE		2
 
 #define ESPI_EPC_CTRL_STATE_PORT	4
@@ -28,6 +26,28 @@
 
 #define ESPI_MAIN_CONTROL_PORT		5
 #define ESPI_MAIN_CONTROL_DEVICE	1
+
+
+#define HW_REF_2C			3
+#define HW_REF_2D			4
+
+#define HW_REF 				HW_REF_2C
+
+#if HW_REF == HW_REF_2C
+  #define HW_REF_STRING			"2C"
+  #define ESPI_PLAY_BUTTONS_DEVICE	1
+  #define ESPI_RIBBON_LEDS_DEVICE 	3
+  #define ESPI_GPIO_DMX_SELECT		1
+#elif HW_REF == HW_REF_2D
+  #define HW_REF_STRING			"2D"
+  #define ESPI_PLAY_BUTTONS_DEVICE	3
+  #define ESPI_RIBBON_LEDS_DEVICE	1
+  #define ESPI_GPIO_DMX_SELECT 		0
+#endif // HW_REF
+
+#define ESPI_GPIO_DMX_UNSELECT 	!ESPI_GPIO_DMX_SELECT
+
+
 
 struct oleds_fb_par;
 

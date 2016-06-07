@@ -1,4 +1,5 @@
 #include <linux/of_gpio.h>
+#include <asm/uaccess.h>
 #include "espi_driver.h"
 
 #define ESPI_RIBBON_LED_DEV_MAJOR	303
@@ -10,14 +11,18 @@ static u8 *rb_led_new_st;
     ribbon leds functions
 *******************************************************************************/
 static ssize_t rbled_write( struct file *filp,
-                            const char __user *buf,
+                            const char __user *buf_user,
                             size_t count,
                             loff_t *f_pos)
 {
+	char buf[count];
 	ssize_t status = 0;
 	u32 i;
 	u8 val, led_id;
 	u8 rot[] = {0,2,1,3};
+
+	if (copy_from_user(buf, buf_user, count))
+		return -EFAULT;
 
 	for(i=0; (i+1) < count; i+=2) {
 		led_id = buf[i];

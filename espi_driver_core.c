@@ -23,7 +23,7 @@
 
 #include "espi_driver.h"
 
-int espi_spi_speed;
+int espi_spi_speed = 1000000;
 
 static struct workqueue_struct *workqueue;
 
@@ -38,7 +38,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 	s32 s;
 	u8 i;
 
-	gpio_set_value(spi->gpio_dmx, 0);	            // dmxs disable: avoid glitches
+	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_SELECT);	            // dmxs disable: avoid glitches
 
 	if(device == 1 || device == 3)
 		s = 0;
@@ -50,7 +50,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		device = 3;
 		port = 7;				// disable all - select unused port
 	} else {
-		gpio_set_value(spi->gpio_dmx, 1);	        // dmxs enable
+	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_UNSELECT);
 		return;
 	}
 
@@ -64,7 +64,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		s += 3;
 	} while( (s <= 3) && (device == 3));
 
-	gpio_set_value(spi->gpio_dmx, 1);	            // dmxs enable
+	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_UNSELECT);	            // dmxs enable
 }
 
 s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfer)
@@ -116,14 +116,18 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 6:
 		espi_driver_pollbuttons((struct espi_driver *)p);
 		espi_driver_encoder_poll((struct espi_driver *)p);
+#if HW_REF == HW_REF_2D
 		espi_driver_epc_status_poll((struct espi_driver *)p);
+#endif
 		break;
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
 		espi_driver_rb_leds_poll((struct espi_driver *)p);
+#if HW_REF == HW_REF_2D
 		espi_driver_epc_control_poll((struct espi_driver *)p);
 		espi_driver_main_ctrl_poll((struct espi_driver *)p);
+#endif
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
@@ -146,8 +150,6 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	struct device_node *dn = dev->dev.of_node; //nni
 
 	printk("espi_driver_probe\n");
-	printk("version %s\n", __DATE__);
-	printk("Hanswurscht\n");
 
 	sb = devm_kzalloc(&dev->dev,sizeof(struct espi_driver), GFP_KERNEL);
 	if (!sb) {
@@ -210,8 +212,11 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_rb_leds_setup(sb);
 	espi_driver_oleds_fb_setup(sb);
 	espi_driver_encoder_setup(sb);
+
+#if HW_REF == HW_REF_2D
 	espi_driver_epc_ctrl_setup(sb);
 	espi_driver_main_ctrl_setup(sb);
+#endif
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
@@ -228,8 +233,10 @@ static s32 espi_driver_remove(struct spi_device *spi)
 
 	cancel_delayed_work(&(sb->work));
 
+#if HW_REF == HW_REF_2D
 	espi_driver_main_ctrl_cleanup(sb);
 	espi_driver_epc_ctrl_cleanup(sb);
+#endif
 	espi_driver_encoder_cleanup(sb);
 	espi_driver_oleds_fb_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
@@ -248,8 +255,6 @@ static struct spi_driver espi_driver_driver = {
 		},
 		.probe = espi_driver_probe,
 		.remove = espi_driver_remove,
-		//.suspend = espi_driver_suspend,
-		//.resume = espi_driver_resume,
 };
 
 module_param(espi_spi_speed, int, 0644);
@@ -260,9 +265,10 @@ static s32 __init espi_driver_init( void )
 {
 	s32 ret;
 
-	espi_spi_speed = 1000000;
-
-	printk("espi_driver_init --\n");
+	printk("espi driver: \n");
+	printk("  espi_spi_speed=%i Hz\n", espi_spi_speed);
+	printk("  espi_hw_ref=%s\n", HW_REF_STRING);
+	printk("  Build: %s - %s \n", __DATE__, __TIME__);
 
 	workqueue = create_workqueue("espi_driver queue");
 	if (workqueue == NULL) {
@@ -273,12 +279,6 @@ static s32 __init espi_driver_init( void )
 	ret = spi_register_driver(&espi_driver_driver);
 	if (ret)
 		pr_err("%s: problem at spi_register_driver\n", __func__);
-
-
-	printk("Registration done. %s - %s \n", __DATE__, __TIME__);
-
-    //printk("%s - %s: espi_scs_test started. \n", __DATE__, __TIME__);
-
 
 	return ret;
 }
