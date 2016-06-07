@@ -18,6 +18,9 @@ elif [[ $1 == "reload" ]]; then
 	ssh -l root 192.168.7.2 "killall -9 playground; sleep 3; rmmod espi_driver"
 	scp espi_driver.ko root@192.168.7.2:/lib/modules/3.18.4/extra/espi_driver.ko
 	ssh -l root 192.168.7.2 "modprobe espi_driver; sleep 3; systemctl start playground"
+elif [[ $1 == "install" ]]; then
+	make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -C ${KSRC} M=$(pwd) INSTALL_MOD_PATH=${KSRC}/modules_install modules_install
+	tar -f ${KSRC}/modules.tar -C ${KSRC}/modules_install -c lib/modules/$VERSION
 else
 	echo "Building..."
 	make ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} -C ${KSRC} M=$(pwd)
