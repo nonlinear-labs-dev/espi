@@ -31,7 +31,7 @@
 #define HW_REF_2C			3
 #define HW_REF_2D			4
 
-#define HW_REF 				HW_REF_2C
+#define HW_REF 				HW_REF_2D
 
 #if HW_REF == HW_REF_2C
   #define HW_REF_STRING			"2C"
