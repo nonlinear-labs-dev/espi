@@ -84,7 +84,7 @@ void espi_driver_leds_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u32 i, update = 0;
-	extern int espi_spi_speed;
+	extern int sck_hz;
 
 	mutex_lock(&led_state_lock);
 	for(i=0; i<LED_STATES_SIZE; i++) {
@@ -103,7 +103,7 @@ void espi_driver_leds_poll(struct espi_driver *p)
 	xfer.len = LED_STATES_SIZE;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = espi_spi_speed;
+	xfer.speed_hz = sck_hz;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_SELECTION_PANEL_PORT, ESPI_SELECTION_LEDS_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);

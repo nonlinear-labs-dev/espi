@@ -84,7 +84,7 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 update = 0;
 
-	extern int espi_spi_speed;
+	extern int sck_hz;
 
 	if(epc_ctrl != epc_new_ctrl)
 		update = 1;
@@ -98,7 +98,7 @@ void espi_driver_epc_control_poll(struct espi_driver *p)
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = espi_spi_speed;
+	xfer.speed_hz = sck_hz;
 
 	espi_driver_scs_select((struct espi_driver*)p, ESPI_EPC_CTRL_STATE_PORT, ESPI_EPC_CONTROL_DEVICE);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
@@ -112,14 +112,14 @@ void espi_driver_epc_status_poll(struct espi_driver *p)
 	struct spi_transfer xfer;
 	u8 rxbuff[1];
 
-	extern int espi_spi_speed;
+	extern int sck_hz;
 
 	xfer.tx_buf = NULL;
 	xfer.rx_buf = rxbuff;
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = espi_spi_speed;
+	xfer.speed_hz = sck_hz;
 
 	espi_driver_set_mode(((struct espi_driver*)p)->spidev, SPI_MODE_3);
 

@@ -23,7 +23,7 @@
 
 #include "espi_driver.h"
 
-int espi_spi_speed = 1000000;
+int sck_hz = 1000000;
 
 static struct workqueue_struct *workqueue;
 
@@ -38,7 +38,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 	s32 s;
 	u8 i;
 
-	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_SELECT);	            // dmxs disable: avoid glitches
+	gpio_set_value(spi->gpio_dmx, spi->espi_gpio_dmx_default);	            // dmxs disable: avoid glitches
 
 	if(device == 1 || device == 3)
 		s = 0;
@@ -50,7 +50,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		device = 3;
 		port = 7;				// disable all - select unused port
 	} else {
-	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_UNSELECT);
+	gpio_set_value(spi->gpio_dmx, !spi->espi_gpio_dmx_default);
 		return;
 	}
 
@@ -64,7 +64,7 @@ void espi_driver_scs_select(struct espi_driver *spi, s32 port, s32 device)
 		s += 3;
 	} while( (s <= 3) && (device == 3));
 
-	gpio_set_value(spi->gpio_dmx, ESPI_GPIO_DMX_UNSELECT);	            // dmxs enable
+	gpio_set_value(spi->gpio_dmx, !spi->espi_gpio_dmx_default);	            // dmxs enable
 }
 
 s32 espi_driver_transfer(struct spi_device *dev, struct spi_transfer *xfer)
@@ -88,14 +88,14 @@ s32 espi_driver_set_mode(struct spi_device *dev, u16 mode)
 	struct spi_transfer xfer;
 	u8 tx = 0;
 
-	extern int espi_spi_speed;
+	extern int sck_hz;
 
 	xfer.tx_buf = &tx;
 	xfer.rx_buf = NULL;
 	xfer.len = 1;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = espi_spi_speed;
+	xfer.speed_hz = sck_hz;
 
 	dev->mode = mode;
 	status = spi_setup(dev);
@@ -116,18 +116,20 @@ static void espi_driver_poll(struct delayed_work *p)
 	case 6:
 		espi_driver_pollbuttons((struct espi_driver *)p);
 		espi_driver_encoder_poll((struct espi_driver *)p);
-#if HW_REF == HW_REF_2D
-		espi_driver_epc_status_poll((struct espi_driver *)p);
-#endif
+
+		if (strncmp(((struct espi_driver*)p)->hw_rev_str, "2D", 2) == 0) {
+			espi_driver_epc_status_poll((struct espi_driver *)p);
+		}
 		break;
 	case 1:
 	case 5:
 		espi_driver_leds_poll((struct espi_driver *)p);
 		espi_driver_rb_leds_poll((struct espi_driver *)p);
-#if HW_REF == HW_REF_2D
-		espi_driver_epc_control_poll((struct espi_driver *)p);
-		espi_driver_main_ctrl_poll((struct espi_driver *)p);
-#endif
+
+		if (strncmp(((struct espi_driver*)p)->hw_rev_str, "2D", 2) == 0) {
+			espi_driver_epc_control_poll((struct espi_driver *)p);
+			espi_driver_main_ctrl_poll((struct espi_driver *)p);
+		}
 		break;
 	case 3:
 		espi_driver_ssd1305_poll((struct espi_driver *)p);
@@ -145,11 +147,12 @@ static void espi_driver_poll(struct delayed_work *p)
 *******************************************************************************/
 static s32 espi_driver_probe(struct spi_device *dev)
 {
-	s32 nscs, i, ret = 0;
+	s32 nscs, len, i, ret = 0;
 	struct espi_driver *sb;
-	struct device_node *dn = dev->dev.of_node; //nni
+	struct device_node *dn = dev->dev.of_node;
 
-	printk("espi_driver_probe\n");
+	struct property *hw_ref_property;
+	struct device_node *nonlinear_node;
 
 	sb = devm_kzalloc(&dev->dev,sizeof(struct espi_driver), GFP_KERNEL);
 	if (!sb) {
@@ -194,7 +197,29 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	ret = devm_gpio_request_one(&dev->dev, sb->gpio_sap, GPIOF_OUT_INIT_HIGH, "gpio_sap");
 	ret = devm_gpio_request_one(&dev->dev, sb->gpio_dmx, GPIOF_OUT_INIT_HIGH, "gpio_dmx");
 
-	/** added by nni } ******************************************************/
+	nonlinear_node = of_find_node_by_path("/nonlinear");
+	if (nonlinear_node)
+		hw_ref_property = of_find_property(nonlinear_node, "hw-rev", &len);
+
+	if (hw_ref_property) {
+		dev_info(&dev->dev, "Found %s for device: %s\n", hw_ref_property->name, (char *)hw_ref_property->value);
+		strncpy(sb->hw_rev_str, hw_ref_property->value, hw_ref_property->length);
+	} else {
+		dev_info(&dev->dev, "Could not find hw-rev in device tree. Assuming: 2D\n");
+		strncpy(sb->hw_rev_str, "2D", 3);
+	}
+
+	/* TODO: This might be better off in dt  */
+	if (strncmp(sb->hw_rev_str, "2D", 2) == 0) {
+		sb->play_buttons_device = 3;
+		sb->ribbon_leds_device = 1;
+		sb->espi_gpio_dmx_default = 0;
+	} else {
+		sb->play_buttons_device = 1;
+		sb->ribbon_leds_device = 3;
+		sb->espi_gpio_dmx_default = 1;
+
+	}
 
 	sb->spidev = dev;
 	sb->dev = &dev->dev;
@@ -213,13 +238,18 @@ static s32 espi_driver_probe(struct spi_device *dev)
 	espi_driver_oleds_fb_setup(sb);
 	espi_driver_encoder_setup(sb);
 
-#if HW_REF == HW_REF_2D
-	espi_driver_epc_ctrl_setup(sb);
-	espi_driver_main_ctrl_setup(sb);
-#endif
+	if (strncmp(sb->hw_rev_str, "2D", 2) == 0) {
+		espi_driver_epc_ctrl_setup(sb);
+		espi_driver_main_ctrl_setup(sb);
+	}
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
 	queue_delayed_work(workqueue, &(sb->work), msecs_to_jiffies(8));
+
+	dev_info(&dev->dev, "espi driver: \n");
+	dev_info(&dev->dev, "  sck_hz=%i Hz\n", sck_hz);
+	dev_info(&dev->dev, "  espi_hw_ref=%s\n", sb->hw_rev_str);
+	dev_info(&dev->dev, "  build: %s - %s \n", __DATE__, __TIME__);
 
 	return ret;
 }
@@ -233,10 +263,11 @@ static s32 espi_driver_remove(struct spi_device *spi)
 
 	cancel_delayed_work(&(sb->work));
 
-#if HW_REF == HW_REF_2D
-	espi_driver_main_ctrl_cleanup(sb);
-	espi_driver_epc_ctrl_cleanup(sb);
-#endif
+	if (strncmp(sb->hw_rev_str, "2D", 2) == 0) {
+		espi_driver_main_ctrl_cleanup(sb);
+		espi_driver_epc_ctrl_cleanup(sb);
+	}
+
 	espi_driver_encoder_cleanup(sb);
 	espi_driver_oleds_fb_cleanup(sb);
 	espi_driver_rb_leds_cleanup(sb);
@@ -257,18 +288,13 @@ static struct spi_driver espi_driver_driver = {
 		.remove = espi_driver_remove,
 };
 
-module_param(espi_spi_speed, int, 0644);
-MODULE_PARM_DESC(espi_spi_speed, "Speed in Hz of the eSPI bus");
+module_param(sck_hz, int, 0644);
+MODULE_PARM_DESC(sck_hz, "Speed in Hz of the eSPI bus");
 
 
 static s32 __init espi_driver_init( void )
 {
 	s32 ret;
-
-	printk("espi driver: \n");
-	printk("  espi_spi_speed=%i Hz\n", espi_spi_speed);
-	printk("  espi_hw_ref=%s\n", HW_REF_STRING);
-	printk("  Build: %s - %s \n", __DATE__, __TIME__);
 
 	workqueue = create_workqueue("espi_driver queue");
 	if (workqueue == NULL) {

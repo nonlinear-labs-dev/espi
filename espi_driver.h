@@ -28,27 +28,6 @@
 #define ESPI_MAIN_CONTROL_DEVICE	1
 
 
-#define HW_REF_2C			3
-#define HW_REF_2D			4
-
-#define HW_REF 				HW_REF_2D
-
-#if HW_REF == HW_REF_2C
-  #define HW_REF_STRING			"2C"
-  #define ESPI_PLAY_BUTTONS_DEVICE	1
-  #define ESPI_RIBBON_LEDS_DEVICE 	3
-  #define ESPI_GPIO_DMX_SELECT		1
-#elif HW_REF == HW_REF_2D
-  #define HW_REF_STRING			"2D"
-  #define ESPI_PLAY_BUTTONS_DEVICE	3
-  #define ESPI_RIBBON_LEDS_DEVICE	1
-  #define ESPI_GPIO_DMX_SELECT 		0
-#endif // HW_REF
-
-#define ESPI_GPIO_DMX_UNSELECT 	!ESPI_GPIO_DMX_SELECT
-
-
-
 struct oleds_fb_par;
 
 struct espi_driver {
@@ -60,6 +39,12 @@ struct espi_driver {
 	s32 gpio_scs[ESPI_SCS_NUM];
 	s32 gpio_sap;
 	s32 gpio_dmx;
+
+	//hw ref dependings
+	s8 hw_rev_str[3];
+	u8 play_buttons_device;
+	u8 ribbon_leds_device;
+	u8 espi_gpio_dmx_default;
 
 	//framebuffer params
 	struct oleds_fb_par* oleds;

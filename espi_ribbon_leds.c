@@ -108,7 +108,7 @@ void espi_driver_rb_leds_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u32 i, update = 0;
-	extern int espi_spi_speed;
+	extern int sck_hz;
 
 
 	for(i=0; i<RIBBON_LED_STATES_SIZE; i++) {
@@ -126,9 +126,9 @@ void espi_driver_rb_leds_poll(struct espi_driver *p)
 	xfer.len = RIBBON_LED_STATES_SIZE;
 	xfer.bits_per_word = 8;
 	xfer.delay_usecs = 0;
-	xfer.speed_hz = espi_spi_speed;
+	xfer.speed_hz = sck_hz;
 
-	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, ESPI_RIBBON_LEDS_DEVICE);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_RIBBON_LEDS_PORT, (struct espi_driver*)p->ribbon_leds_device);
 	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 0);
 	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
