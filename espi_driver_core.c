@@ -128,7 +128,7 @@ static void espi_driver_poll(struct delayed_work *p)
 
 		if (strncmp(((struct espi_driver*)p)->hw_rev_str, "2D", 2) == 0) {
 			espi_driver_epc_control_poll((struct espi_driver *)p);
-			espi_driver_main_ctrl_poll((struct espi_driver *)p);
+			espi_driver_lpc_ctrl_poll((struct espi_driver *)p);
 		}
 		break;
 	case 3:
@@ -240,7 +240,7 @@ static s32 espi_driver_probe(struct spi_device *dev)
 
 	if (strncmp(sb->hw_rev_str, "2D", 2) == 0) {
 		espi_driver_epc_ctrl_setup(sb);
-		espi_driver_main_ctrl_setup(sb);
+		espi_driver_lpc_ctrl_setup(sb);
 	}
 
 	INIT_DELAYED_WORK(&(sb->work), (work_func_t) espi_driver_poll);
@@ -264,7 +264,7 @@ static s32 espi_driver_remove(struct spi_device *spi)
 	cancel_delayed_work(&(sb->work));
 
 	if (strncmp(sb->hw_rev_str, "2D", 2) == 0) {
-		espi_driver_main_ctrl_cleanup(sb);
+		espi_driver_lpc_ctrl_cleanup(sb);
 		espi_driver_epc_ctrl_cleanup(sb);
 	}
 

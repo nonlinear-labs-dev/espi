@@ -27,6 +27,9 @@
 #define ESPI_MAIN_CONTROL_PORT		5
 #define ESPI_MAIN_CONTROL_DEVICE	1
 
+#define ESPI_LPC_CTRL_DEVICE		5
+#define ESPI_LPC_CTRL_PORT		1
+
 
 struct oleds_fb_par;
 
@@ -90,9 +93,9 @@ s32 espi_driver_epc_ctrl_cleanup(struct espi_driver *sb);
 void espi_driver_epc_control_poll(struct espi_driver *p);
 void espi_driver_epc_status_poll(struct espi_driver *p);
 /*** main cpu board control ***/
-s32 espi_driver_main_ctrl_setup(struct espi_driver *sb);
-s32 espi_driver_main_ctrl_cleanup(struct espi_driver *sb);
-void espi_driver_main_ctrl_poll(struct espi_driver *p);
+s32 espi_driver_lpc_ctrl_setup(struct espi_driver *sb);
+s32 espi_driver_lpc_ctrl_cleanup(struct espi_driver *sb);
+void espi_driver_lpc_ctrl_poll(struct espi_driver *p);
 
 #endif
 

@@ -1,3 +1,4 @@
+#include <linux/string.h>
 #include <linux/of_gpio.h>
 #include "espi_driver.h"
 #include "espi_fb.h"
@@ -93,8 +94,8 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 	espi_driver_scs_select(sb, ESPI_PLAY_PANEL_PORT, 0);
 	gpio_set_value(sb->gpio_sap, 1);
 
-	for(i=0; i<SSD1305_BUFF_SIZE; i++)
-		ssd1305_buff[i] = ssd1305_tmp_buff[i] = 0;
+	memset(ssd1305_buff, 0, SSD1305_BUFF_SIZE);
+	memset(ssd1305_tmp_buff, 0, SSD1305_BUFF_SIZE);
 
 	xfer.tx_buf = ssd1305_buff;
 	xfer.rx_buf = NULL;
