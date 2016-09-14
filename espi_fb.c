@@ -203,5 +203,3 @@ s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
 	return 0;
 }
 
-
-
