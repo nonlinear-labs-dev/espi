@@ -4,7 +4,7 @@
 #include "espi_driver.h"
 
 s32 ssd1322_fb_init(struct oleds_fb_par *par);
-void ssd1322_fb_deinit(void);
+void ssd1322_fb_deinit(struct oleds_fb_par *par);
 void ssd1322_update_display(struct oleds_fb_par *par);
 
 s32 ssd1305_fb_init(struct oleds_fb_par *par);

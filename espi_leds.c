@@ -45,7 +45,7 @@ static struct class *led_class;
 
 s32 espi_driver_leds_setup(struct espi_driver *sb)
 {
-	s32 i, ret;
+	s32 ret;
 
 	led_st = kcalloc(LED_STATES_SIZE, sizeof(u8), GFP_KERNEL);
 	if (!led_st)
