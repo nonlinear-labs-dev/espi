@@ -108,10 +108,24 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 	return 0;
 }
 
-void ssd1305_fb_deinit(void)
+void ssd1305_fb_deinit(struct espi_driver *p)
 {
+	struct spi_transfer xfer;
+	extern int sck_hz;
+
 	memset(ssd1305_buff, 0, SSD1305_BUFF_SIZE);
-	memset(ssd1305_tmp_buff, 0, SSD1305_BUFF_SIZE);
+
+	xfer.tx_buf = ssd1305_buff;
+	xfer.rx_buf = NULL;
+	xfer.len = SSD1305_BUFF_SIZE;
+	xfer.bits_per_word = 8;
+	xfer.delay_usecs = 0;
+	xfer.speed_hz = sck_hz;
+
+	gpio_set_value(((struct espi_driver *)p)->gpio_sap, 1);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, ESPI_PLAY_SOLED_DEVICE);
+	espi_driver_transfer(((struct espi_driver*)p)->spidev, &xfer);
+	espi_driver_scs_select((struct espi_driver*)p, ESPI_PLAY_PANEL_PORT, 0);
 
 	kfree(ssd1305_buff);
 	kfree(ssd1305_tmp_buff);

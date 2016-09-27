@@ -195,7 +195,8 @@ s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
 	struct fb_info *info = sb->oleds->info;
 
 	ssd1322_fb_deinit(sb);
-	ssd1305_fb_deinit();
+	ssd1305_fb_deinit(sb);
+
 	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));//vfree(info->screen_base);//
 
 	unregister_framebuffer(info);

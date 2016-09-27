@@ -166,8 +166,10 @@ void ssd1322_fb_deinit(struct espi_driver *p)
 {
 
 	memset(ssd1322_buff, 0, SSD1322_BUFF_SIZE);
-	memset(ssd1322_tmp_buff, 0, SSD1322_BUFF_SIZE);
-	espi_driver_ssd1322_poll(p);
+
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, ESPI_EDIT_BOLED_DEVICE);
+	ssd1322_data(p, ssd1322_buff, SSD1322_BUFF_SIZE);
+	espi_driver_scs_select(p, ESPI_EDIT_PANEL_PORT, 0);
 
 	kfree(ssd1322_buff);
 	kfree(ssd1322_tmp_buff);
