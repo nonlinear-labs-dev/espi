@@ -162,12 +162,12 @@ s32 ssd1322_fb_init(struct oleds_fb_par *par)
 	return 0;
 }
 
-void ssd1322_fb_deinit(struct oleds_fb_par *par)
+void ssd1322_fb_deinit(struct espi_driver *p)
 {
 
 	memset(ssd1322_buff, 0, SSD1322_BUFF_SIZE);
 	memset(ssd1322_tmp_buff, 0, SSD1322_BUFF_SIZE);
-	ssd1322_update_display(par);
+	espi_driver_ssd1322_poll(p);
 
 	kfree(ssd1322_buff);
 	kfree(ssd1322_tmp_buff);
