@@ -9,7 +9,6 @@ static u8 epc_ctrl, epc_new_ctrl, epc_stat;
 
 static ssize_t epc_ctrl_fops_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
-	u32 i;
 	u8 tmp[count];
 
 	if (copy_from_user(tmp, buf, count))

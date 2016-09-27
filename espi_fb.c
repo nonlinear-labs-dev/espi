@@ -4,7 +4,7 @@
 #include "espi_fb.h"
 
 static struct fb_fix_screeninfo oleds_fb_fix = {
-	.id 		= "NL Emphase FB",
+	.id 		= "NL C15",
 	.type 		= FB_TYPE_PACKED_PIXELS,
 	.visual		= FB_VISUAL_TRUECOLOR,
 	.xpanstep	= 0,
@@ -15,6 +15,7 @@ static struct fb_fix_screeninfo oleds_fb_fix = {
 
 static struct fb_var_screeninfo oleds_fb_var = {
 	.bits_per_pixel = 16,
+	.grayscale = 1,
 };
 
 static void oleds_fb_update_display(struct oleds_fb_par *par)
@@ -97,8 +98,8 @@ static int oleds_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 	unsigned long start;
 	u32 len;
 
-	start	= info->fix.smem_start;
-	len		= info->fix.smem_len;
+	start = info->fix.smem_start;
+	len = info->fix.smem_len;
 
 	vma->vm_page_prot = __pgprot_modify(vma->vm_page_prot, L_PTE_MT_MASK, L_PTE_MT_WRITETHROUGH);
 
@@ -108,14 +109,14 @@ static int oleds_fb_mmap(struct fb_info *info, struct vm_area_struct *vma)
 static struct fb_ops oleds_fb_ops = {
 	.owner 			= THIS_MODULE,
 	.fb_read 		= fb_sys_read,
-	.fb_write		= oleds_fb_write,
-    .fb_fillrect    = oleds_fb_fillrect,
-    .fb_copyarea    = oleds_fb_copyarea,
-	.fb_imageblit   = oleds_fb_imageblit,
+	.fb_write 		= oleds_fb_write,
+	.fb_fillrect 		= oleds_fb_fillrect,
+	.fb_copyarea 		= oleds_fb_copyarea,
+	.fb_imageblit 		= oleds_fb_imageblit,
 	.fb_setcmap		= oleds_fb_setcmap,
-	.fb_setcolreg	= oleds_fb_setcolreg,
-	.fb_blank		= oleds_fb_blank,
-	.fb_mmap		= oleds_fb_mmap,
+	.fb_setcolreg 		= oleds_fb_setcolreg,
+	.fb_blank 		= oleds_fb_blank,
+	.fb_mmap 		= oleds_fb_mmap,
 };
 
 s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
@@ -193,7 +194,7 @@ s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
 {
 	struct fb_info *info = sb->oleds->info;
 
-	ssd1322_fb_deinit();
+	ssd1322_fb_deinit(info->par);
 	ssd1305_fb_deinit();
 	__free_pages(__va(info->fix.smem_start), get_order(info->fix.smem_len));//vfree(info->screen_base);//
 
@@ -202,6 +203,4 @@ s32 espi_driver_oleds_fb_cleanup(struct espi_driver *sb)
 
 	return 0;
 }
-
-
 
