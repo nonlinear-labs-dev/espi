@@ -109,6 +109,9 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 
 void ssd1305_fb_deinit(void)
 {
+	memset(ssd1305_buff, 0, SSD1305_BUFF_SIZE);
+	memset(ssd1305_tmp_buff, 0, SSD1305_BUFF_SIZE);
+
 	kfree(ssd1305_buff);
 	kfree(ssd1305_tmp_buff);
 }
