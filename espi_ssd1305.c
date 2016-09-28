@@ -131,18 +131,10 @@ void ssd1305_fb_deinit(struct espi_driver *p)
 	kfree(ssd1305_tmp_buff);
 }
 
-static u8 ssd1305_rgb_to_mono(u16 rgb)
-{
-	if(ssd1322_rgb_to_mono(rgb) > 0)
-		return 1;
-	else
-		return 0;
-}
-
 void ssd1305_update_display(struct oleds_fb_par *par)
 {
 	u32 i, j, k;
-	u16* buf =  (u16*) (par->info->screen_base);
+	u8* buf = par->info->screen_base;
 	u32 offset = SSD1305_FB_OFFSET;
 	u32 tmp;
 
@@ -152,7 +144,7 @@ void ssd1305_update_display(struct oleds_fb_par *par)
 			tmp = j*132 + i + 4;
 			ssd1305_tmp_buff[tmp] = 0;
 			for(k = 0; k < 8; k++)
-				ssd1305_tmp_buff[tmp] |= ssd1305_rgb_to_mono(buf[offset + k*256 + i]) << k;
+				ssd1305_tmp_buff[tmp] |= (buf[offset + k*256 + i]) << k;
 		}
 		offset += 8*256;
 	}

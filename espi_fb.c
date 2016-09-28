@@ -14,8 +14,9 @@ static struct fb_fix_screeninfo oleds_fb_fix = {
 };
 
 static struct fb_var_screeninfo oleds_fb_var = {
-	.bits_per_pixel = 16,
-	.grayscale = 1,
+	/* Actually we are calculating with 4 in the driver,
+	 * but the interface needs to transfer 1 Byte min.*/
+	.bits_per_pixel = 8,
 };
 
 static void oleds_fb_update_display(struct oleds_fb_par *par)
@@ -36,6 +37,7 @@ static ssize_t oleds_fb_write(struct fb_info *info, const char __user *buf, size
 	if (p > total_size)
 		return -EINVAL;
 
+	// WTF is this?
 	if (count + p > total_size)
 		count = total_size - p;
 
@@ -157,14 +159,11 @@ s32 espi_driver_oleds_fb_setup(struct espi_driver *sb)
 	info->var.yres_virtual = par->height;
 	info->var.nonstd = 1;
 
-	info->var.red.offset = 11;
-	info->var.red.length = 5;
-	info->var.green.offset = 5;
-	info->var.green.length = 6;
-	info->var.blue.offset = 0;
-	info->var.blue.length = 5;
+	info->var.green.length = info->var.transp.length = info->var.blue.length =
+	info->var.red.length = info->var.bits_per_pixel;
+
+	info->var.red.offset = info->var.green.offset = info->var.blue.offset =
 	info->var.transp.offset = 0;
-	info->var.transp.length = 0;
 
 	info->screen_base = (u8 __force __iomem *)vmem;
 	info->fix.smem_start = __pa(vmem);

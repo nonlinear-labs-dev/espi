@@ -175,26 +175,19 @@ void ssd1322_fb_deinit(struct espi_driver *p)
 	kfree(ssd1322_tmp_buff);
 }
 
-u8 ssd1322_rgb_to_mono(u16 rgb)
-{
-	u16 tmp;
-	tmp = 613 * (rgb >> 11) + 601 * (rgb >> 5 & 0x3F) + 233 * (rgb & 0x1F);
-	return tmp >> 12;
-}
-
 void ssd1322_update_display(struct oleds_fb_par *par)
 {
 	u32 i;
-	u16* buf =  (u16*) (par->info->screen_base);
+	u8* buf = par->info->screen_base;
 	u32 offset = 0;
 
 	mutex_lock(&ssd1322_tmp_buff_lock);
 	for(i = 0; i < SSD1322_BUFF_SIZE; i++) {
-		ssd1322_tmp_buff[i] = ssd1322_rgb_to_mono(buf[offset++]) << 4;
-		ssd1322_tmp_buff[i] |= ssd1322_rgb_to_mono(buf[offset++]);
+
+		ssd1322_tmp_buff[i] = buf[offset++] << 4;
+		ssd1322_tmp_buff[i] |= buf[offset++];
 	}
 	mutex_unlock(&ssd1322_tmp_buff_lock);
-
 }
 
 void espi_driver_ssd1322_poll(struct espi_driver *p)
