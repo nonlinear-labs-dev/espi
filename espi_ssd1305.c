@@ -144,10 +144,28 @@ void ssd1305_update_display(struct oleds_fb_par *par)
 			tmp = j*132 + i + 4;
 			ssd1305_tmp_buff[tmp] = 0;
 			for(k = 0; k < 8; k++)
-				ssd1305_tmp_buff[tmp] |= (buf[offset + k*256 + i]) << k;
+				ssd1305_tmp_buff[tmp] |= (buf[offset + k*256 + i] > 0 ? 1 : 0) << k;
 		}
 		offset += 8*256;
 	}
+
+
+//	j = 0x55;
+//
+//	for (i=4; i<50; i++) {
+//		j ^= 0xff;
+//		if (i%10 == 0)
+//			ssd1305_tmp_buff[i] = 0xFF;
+//		else
+//			ssd1305_tmp_buff[i] = j;
+//
+//	}
+
+//
+//	ssd1305_tmp_buff[4] = 0xFF;
+//	ssd1305_tmp_buff[32] = 0xFF;
+
+
 	mutex_unlock(&ssd1305_tmp_buff_lock);
 }
 
