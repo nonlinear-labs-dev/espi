@@ -10,7 +10,7 @@
 #define SSD1305_SET_RATIO_OSC 		0xD5
 #define SSD1305_SET_COL_ADDR 		0x21
 #define SSD1305_SET_AREA_COLOR 		0xD8
-#define SSD1305_SET_SEG_REMAP1 		0xA1
+#define SSD1305_SET_SEG_REMAP1 		0xA0
 #define SSD1305_SET_SCAN_NOR 		0xC8
 #define SSD1305_SET_OFFSET 		0xD3
 #define SSD1305_SET_CONTRAST 		0x81
@@ -23,7 +23,8 @@
 #define SSD1305_SET_COL_HI 		0x10
 #define SSD1305_SET_COL_LO 		0x00
 #define SSD1305_SET_PAGE_ADDR 		0x22
-#define SSD1305_BUFF_SIZE 		(132*4)
+#define SSD1305_WIDTH			128
+#define SSD1305_BUFF_SIZE 		(SSD1305_WIDTH*4)
 
 
 static u8 *ssd1305_buff;
@@ -139,33 +140,15 @@ void ssd1305_update_display(struct oleds_fb_par *par)
 	u32 tmp;
 
 	mutex_lock(&ssd1305_tmp_buff_lock);
-	for(j = 0; j < 4; j++) {
-		for(i = 0; i < 128; i++) {
-			tmp = j*132 + i + 4;
+	for(j=0; j<4; j++) { // 4 times 8 bit rows = 32 rows
+		for(i=0; i<SSD1305_WIDTH; i++) {
+			tmp = j*SSD1305_WIDTH + (SSD1305_WIDTH-i-1);
 			ssd1305_tmp_buff[tmp] = 0;
-			for(k = 0; k < 8; k++)
+			for(k=0; k<8; k++)
 				ssd1305_tmp_buff[tmp] |= (buf[offset + k*256 + i] > 0 ? 1 : 0) << k;
 		}
 		offset += 8*256;
 	}
-
-
-//	j = 0x55;
-//
-//	for (i=4; i<50; i++) {
-//		j ^= 0xff;
-//		if (i%10 == 0)
-//			ssd1305_tmp_buff[i] = 0xFF;
-//		else
-//			ssd1305_tmp_buff[i] = j;
-//
-//	}
-
-//
-//	ssd1305_tmp_buff[4] = 0xFF;
-//	ssd1305_tmp_buff[32] = 0xFF;
-
-
 	mutex_unlock(&ssd1305_tmp_buff_lock);
 }
 
