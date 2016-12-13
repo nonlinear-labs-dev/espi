@@ -57,7 +57,7 @@ s32 ssd1305_fb_init(struct oleds_fb_par *par)
 	ssd1305_buff[i++] = 0xA0;
 	ssd1305_buff[i++] = SSD1305_SET_COL_ADDR;
 	ssd1305_buff[i++] = 0;
-	ssd1305_buff[i++] = 131;
+	ssd1305_buff[i++] = 7F; // Changed for White Display. Was 0x83
 	ssd1305_buff[i++] = SSD1305_SET_AREA_COLOR;
 	ssd1305_buff[i++] = 0x05;
 	ssd1305_buff[i++] = SSD1305_SET_SEG_REMAP1;
