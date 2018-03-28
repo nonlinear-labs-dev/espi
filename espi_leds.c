@@ -1,11 +1,13 @@
 #include <linux/of_gpio.h>
 #include <asm/uaccess.h>
+#include <linux/jiffies.h>
 #include "espi_driver.h"
 
 #define ESPI_LED_DEV_MAJOR		301
 #define LED_STATES_SIZE			12
 static u8 *led_st;
 static u8 *led_new_st;
+static u64 lastUpdate = 0;
 static DEFINE_MUTEX(led_state_lock);
 
 static ssize_t led_fops_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
@@ -84,6 +86,11 @@ void espi_driver_leds_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u32 i, update = 0;
+	u64 now = get_jiffies_64();
+	u64 diff = now - lastUpdate;
+	unsigned int diffMS = jiffies_to_msecs(diff);
+	unsigned int interval = 250;
+
 	extern int sck_hz;
 
 	mutex_lock(&led_state_lock);
@@ -95,8 +102,12 @@ void espi_driver_leds_poll(struct espi_driver *p)
 	}
 	mutex_unlock(&led_state_lock);
 
+	update |= diffMS >= interval;
+
 	if(update == 0)
 		return;
+
+	lastUpdate = now;
 
 	xfer.tx_buf = led_st;
 	xfer.rx_buf = NULL;

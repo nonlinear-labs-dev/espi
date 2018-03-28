@@ -1,11 +1,13 @@
 #include <linux/of_gpio.h>
 #include <asm/uaccess.h>
+#include <linux/jiffies.h>
 #include "espi_driver.h"
 
 #define ESPI_RIBBON_LED_DEV_MAJOR	303
 #define RIBBON_LED_STATES_SIZE		17
 static u8 *rb_led_st;
 static u8 *rb_led_new_st;
+static u64 lastUpdate = 0;
 
 /*******************************************************************************
     ribbon leds functions
@@ -108,6 +110,11 @@ void espi_driver_rb_leds_poll(struct espi_driver *p)
 {
 	struct spi_transfer xfer;
 	u32 i, update = 0;
+	u64 now = get_jiffies_64();
+	u64 diff = now - lastUpdate;
+	unsigned int diffMS = jiffies_to_msecs(diff);
+	unsigned int interval = 250;
+
 	extern int sck_hz;
 
 
@@ -118,8 +125,12 @@ void espi_driver_rb_leds_poll(struct espi_driver *p)
 		}
 	}
 
+	update |= diffMS >= interval;
+
 	if(update == 0)
 		return;
+
+	lastUpdate = now;
 
 	xfer.tx_buf = rb_led_st;
 	xfer.rx_buf = NULL;
