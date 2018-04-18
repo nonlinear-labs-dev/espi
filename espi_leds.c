@@ -1,5 +1,5 @@
 #include <linux/of_gpio.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 #include <linux/jiffies.h>
 #include "espi_driver.h"
 
