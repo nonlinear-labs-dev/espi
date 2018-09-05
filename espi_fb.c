@@ -49,7 +49,7 @@ static ssize_t oleds_fb_write(struct fb_info *info, const char __user *buf, size
 	if (copy_from_user(dst, buf, count))
 		return -EFAULT;
 
-	oleds_fb_update_display(par);
+//	oleds_fb_update_display(par);
 
 	*ppos += count;
 
